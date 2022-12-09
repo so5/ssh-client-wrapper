@@ -1,0 +1,28 @@
+{
+  "env": {
+    "node": true,
+    "mocha": true,
+    "es6": true
+  },
+  "settings": {
+    "node": {
+      "allowModules": [
+        "chai",
+        "chai-fs",
+        "chai-as-promised",
+        "sinon",
+        "sinon-chai",
+        "fs-extra",
+        "rewire"
+      ]
+    }
+  },
+  "plugins": [
+    "chai-expect",
+    "chai-friendly"
+  ],
+  "rules": {
+    "no-unused-expressions": 0,
+    "chai-friendly/no-unused-expressions": 2
+  }
+}

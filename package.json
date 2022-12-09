@@ -1,0 +1,46 @@
+{
+  "name": "ssh-client-wrapper",
+  "version": "1.0.0",
+  "description": "wrapper library for open ssh client and rsync",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "mocha --recursive test",
+    "lint": "eslint --fix lib test",
+    "postversion": "git push origin $(git describe --abbrev=0 --tags)"
+  },
+  "engines": {
+    "node": ">=12.9"
+  },
+  "author": "Naoyuki Sogo <sogo@longtail-software.co.jp>",
+  "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix"
+  },
+  "dependencies": {
+    "debug": "^4.3.4",
+    "glob": "^10.2.2",
+    "node-pty": "^0.10.1"
+  },
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "chai-as-promised": "^7.1.1",
+    "chai-fs": "^2.0.0",
+    "eslint": "^8.38.0",
+    "eslint-config-eslint": "^7.0.0",
+    "eslint-plugin-chai-expect": "^3.0.0",
+    "eslint-plugin-chai-friendly": "^0.7.2",
+    "eslint-plugin-jsdoc": "^43.0.6",
+    "eslint-plugin-node": "^11.1.0",
+    "fs-extra": "^11.1.1",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.1",
+    "mocha": "^10.2.0",
+    "sinon": "^15.0.3",
+    "sinon-chai": "^3.7.0"
+  }
+}
