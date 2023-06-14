@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    service:
+    services:
       testbed:
         image: naoso5/test-sshd
         ports: 10022:22
