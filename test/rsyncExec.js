@@ -144,11 +144,9 @@ describe("test rsync exec", function() {
           return path.posix.basename(e);
         }))).to.have.members(["hoge"]);
 
-        let result;
-        await sshExec(hostInfo, `cat ${target}`, (data)=>{
-          result = data;
-        });
-        expect(result).to.equal("ARssh_testLocalDir/bar\n");
+        rt.splice(0, rt.length);
+        await sshExec(hostInfo, `cat ${target}`, output);
+        expect(formatLsOutput(rt)).to.have.members(["ARssh_testLocalDir/bar"]);
       });
     });
     describe("send directory tree", ()=>{
