@@ -22,6 +22,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
-      - run: docker run --rm -p${TEST_PORT}:22 naoso5/test-sshd
+      - run: docker run --rm -p10022:22 naoso5/test-sshd
       - run: npm run test
       - run: npm test
