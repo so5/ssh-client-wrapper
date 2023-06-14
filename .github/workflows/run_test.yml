@@ -7,6 +7,10 @@ on:
 
 jobs:
   test:
+    service:
+      testbed:
+        image: naoso5/test-sshd
+        ports: 10022:22
     env:
       TEST_USER: testuser
       TEST_PW: passw0rd
@@ -14,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [18.x, 20.x, 16.x, 14.x]
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
@@ -22,6 +26,5 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
-      - run: docker run --rm -p10022:22 naoso5/test-sshd
       - run: npm run test
       - run: npm test
