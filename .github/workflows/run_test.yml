@@ -10,7 +10,8 @@ jobs:
     services:
       testbed:
         image: naoso5/test-sshd
-        ports: 10022:22
+        ports:
+          - 10022:22
     env:
       TEST_USER: testuser
       TEST_PW: passw0rd
