@@ -73,74 +73,67 @@ describe("test rsync exec", function() {
         await send(hostInfo, [localFiles[0]], remoteEmptyDir);
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, output);
-        expect(rt.map((e)=>{
-          return path.posix.basename(e);
-        })).to.have.members(["foo\n"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
       });
       it("should accept absolute src file and relative dst dir name", async ()=>{
         await send(hostInfo, [path.resolve(localFiles[3])], remoteEmptyDir);
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, output);
-        expect(rt.map((e)=>{
-          return path.posix.basename(e);
-        })).to.have.members(["piyo\n"]);
+        expect(formatLsOutput(rt)).to.have.members(["piyo"]);
       });
       it("should accept relative src file and absolute dst dir name", async ()=>{
         await send(hostInfo, [localFiles[0]], `${path.posix.join(remoteHome, remoteEmptyDir)}/`);
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, output);
-        expect(rt.map((e)=>{
-          return path.posix.basename(e);
-        })).to.have.members(["foo\n"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
       });
       it("should accept absolute src file and absolute dst dir name", async ()=>{
         await send(hostInfo, [path.resolve(localFiles[0])], path.posix.join(remoteHome, remoteEmptyDir));
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, output);
-        expect(rt.map((e)=>{
-          return path.posix.basename(e);
-        })).to.have.members(["foo\n"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
       });
       it("should accept relative src file and relative dst file name", async ()=>{
         await send(hostInfo, [localFiles[0]], path.posix.join(remoteEmptyDir, "hoge"));
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, output);
-        expect(rt.map((e)=>{
+        expect(formatLsOutput(rt.map((e)=>{
           return path.posix.basename(e);
-        })).to.have.members(["hoge\n"]);
+        }))).to.have.members(["hoge"]);
       });
       it("should accept absolute src file and relative dst file name", async ()=>{
         await send(hostInfo, [path.resolve(localFiles[0])], path.posix.join(remoteEmptyDir, "hoge"));
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, output);
-        expect(rt.map((e)=>{
+        expect(formatLsOutput(rt.map((e)=>{
           return path.posix.basename(e);
-        })).to.have.members(["hoge\n"]);
+        }))).to.have.members(["hoge"]);
       });
       it("should accept relative src file and absolute dst file name", async ()=>{
         await send(hostInfo, [localFiles[0]], path.posix.join(remoteHome, remoteEmptyDir, "hoge"));
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, output);
-        expect(rt.map((e)=>{
+        expect(formatLsOutput(rt.map((e)=>{
           return path.posix.basename(e);
-        })).to.have.members(["hoge\n"]);
+        }))).to.have.members(["hoge"]);
       });
       it("should accept absolute src file and absolute dst file name", async ()=>{
         await send(hostInfo, [path.resolve(localFiles[0])], path.posix.join(remoteHome, remoteEmptyDir, "hoge"));
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, output);
-        expect(rt.map((e)=>{
+        expect(formatLsOutput(rt.map((e)=>{
           return path.posix.basename(e);
-        })).to.have.members(["hoge\n"]);
+        }))).to.have.members(["hoge"]);
       });
 
       it("should overwrite existing file", async ()=>{
         const target = path.posix.join(remoteEmptyDir, "hoge");
         await send(hostInfo, [localFiles[0]], target);
         await sshExec(hostInfo, `ls ${target}`, output);
-        expect(rt.map((e)=>{
-          return path.posix.basename(e);
-        })).to.have.members(["hoge\n"]);
+        expect(rt
+          .map((e)=>{
+            return path.posix.basename(e);
+          })).to.have.members(["hoge\n"]);
         rt.splice(0, rt.length);
 
         const time = new Date();
