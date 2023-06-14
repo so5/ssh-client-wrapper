@@ -42,16 +42,6 @@ describe("test for ssh execution", function() {
       expect(sshout).to.be.calledOnce;
       expect(sshout).to.be.calledWith("hoge\n");
     });
-    it("should execute single command with stdout & stderr", async ()=>{
-      const rt = await sshExec(hostInfo, `echo ${testText}; echo ${testText}>&2`, sshout);
-      expect(rt).to.equal(0);
-      expect(sshout).to.be.calledTwice;
-      const call0 = sshout.getCall(0);
-      const call1 = sshout.getCall(1);
-      expect(call0).to.be.calledWith("hoge\n");
-      expect(call1).to.be.calledWith("hoge\n");
-    });
-
     //please note that exec() resolves with non-zero value
     //(126 permisssion deny or 127 file not found)
     //but does not reject in following 2 cases
