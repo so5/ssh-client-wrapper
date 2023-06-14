@@ -142,7 +142,7 @@ describe("test rsync exec", function() {
         await sshExec(hostInfo, `ls ${target}`, output);
         expect(formatLsOutput(rt.map((e)=>{
           return path.posix.basename(e);
-        }))).to.have.members(["hoge\n"]);
+        }))).to.have.members(["hoge"]);
 
         let result;
         await sshExec(hostInfo, `cat ${target}`, (data)=>{
