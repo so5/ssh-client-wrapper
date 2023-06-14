@@ -130,10 +130,9 @@ describe("test rsync exec", function() {
         const target = path.posix.join(remoteEmptyDir, "hoge");
         await send(hostInfo, [localFiles[0]], target);
         await sshExec(hostInfo, `ls ${target}`, output);
-        expect(rt
-          .map((e)=>{
-            return path.posix.basename(e);
-          })).to.have.members(["hoge\n"]);
+        expect(formatLsOutput(rt.map((e)=>{
+          return path.posix.basename(e);
+        }))).to.have.members(["hoge"]);
         rt.splice(0, rt.length);
 
         const time = new Date();
@@ -141,9 +140,9 @@ describe("test rsync exec", function() {
         await fs.utimes(localFiles[1], time, time);
         await send(hostInfo, [localFiles[1]], target);
         await sshExec(hostInfo, `ls ${target}`, output);
-        expect(rt.map((e)=>{
+        expect(formatLsOutput(rt.map((e)=>{
           return path.posix.basename(e);
-        })).to.have.members(["hoge\n"]);
+        }))).to.have.members(["hoge\n"]);
 
         let result;
         await sshExec(hostInfo, `cat ${target}`, (data)=>{
