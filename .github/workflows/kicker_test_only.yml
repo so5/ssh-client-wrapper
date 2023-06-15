@@ -1,4 +1,4 @@
-name: release package
+name: run UT only
 on:
   push:
     branches:
