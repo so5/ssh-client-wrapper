@@ -1,0 +1,18 @@
+name: release package
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - '*'
+jobs:
+  test:
+    uses: ./.github/workflows/run_test.yml
+  publish-npm:
+    - run: echo ${{ github.ref }}
+    - if: startsWith( github.ref, 'refs/tags/v' )
+      uses: ./.github/workflows/npm-publish.yml
+      secrets: inherit

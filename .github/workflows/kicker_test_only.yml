@@ -1,8 +1,0 @@
-name: run UT only
-on:
-  push:
-    tags-ignore:
-      - 'v*'
-jobs:
-  test:
-    uses: ./.github/workflows/run_test.yml
