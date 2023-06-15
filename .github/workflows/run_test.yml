@@ -1,13 +1,6 @@
 name: run UT
 on:
-  push:
-    branches: [ main ]
-    tag-ignore: 'v*'
-  pull_request:
-    branches: [ main ]
-    tag-ignore: 'v*'
   workflow_call:
-
 jobs:
   test:
     services:
@@ -22,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [18.x, 20.x, 16.x]
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}

@@ -1,11 +1,7 @@
 name: publish
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
 jobs:
-  test:
-    uses: ./.github/workflows/run_test.yml
   publish-npm:
     runs-on: ubuntu-latest
     steps:

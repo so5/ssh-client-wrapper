@@ -1,0 +1,10 @@
+name: release package
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  test:
+    uses: ./.github/workflows/run_test.yml
+  publish-npm:
+    uses: ./.github/workflows/npm-publish.yml
