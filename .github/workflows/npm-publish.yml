@@ -7,16 +7,15 @@ on:
   workflow_run:
     workflows:
       - run UT
-    branches:
-      - main
-    tags:
-      - 'v*'
     types:
       - completed
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
     steps:
+      - run: echo ${{ github.ref }}
+      - run: echo ${{ github.ref_name }}
+      - run: echo ${{ github.ref_type }}
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
