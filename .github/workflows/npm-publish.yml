@@ -5,7 +5,7 @@ on:
       - 'v*'
 jobs:
   test:
-    uses: .github/workflows/run_test.yml
+    uses: ./.github/workflows/run_test.yml
   publish-npm:
     runs-on: ubuntu-latest
     steps:
