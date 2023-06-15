@@ -1,8 +1,6 @@
 name: run UT only
 on:
   push:
-    branches:
-      - main
     tags-ignore:
       - 'v*'
 jobs:

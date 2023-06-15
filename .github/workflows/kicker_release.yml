@@ -1,6 +1,8 @@
 name: release package
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 jobs:
@@ -8,3 +10,4 @@ jobs:
     uses: ./.github/workflows/run_test.yml
   publish-npm:
     uses: ./.github/workflows/npm-publish.yml
+    secrets: inherit
