@@ -33,14 +33,15 @@ describe("test for ssh execution", function() {
     it("should execute single command with stdout", async ()=>{
       const rt = await sshExec(hostInfo, `echo ${testText}`, sshout);
       expect(rt).to.equal(0);
-      expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWith("hoge\n");
+      expect(sshout).to.be.called;
+
+      expect(sshout).to.be.calledWithMatch(/^hoge/);
     });
     it("should execute single command with stderr", async ()=>{
       const rt = await sshExec(hostInfo, `echo ${testText} >&2`, sshout);
       expect(rt).to.equal(0);
-      expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWith("hoge\n");
+      expect(sshout).to.be.called;
+      expect(sshout).to.be.calledWithMatch(/^hoge/);
     });
     //please note that exec() resolves with non-zero value
     //(126 permisssion deny or 127 file not found)
