@@ -1,7 +1,8 @@
 name: publish npm package
 on:
   push:
-    tags: ['v*']
+    tags:
+      - 'v*'
 jobs:
   test:
     uses: ./.github/workflows/run_test.yml
