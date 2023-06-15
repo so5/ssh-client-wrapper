@@ -1,5 +1,8 @@
 name: run UT
 on:
+  push:
+    tags-ignore:
+      - 'v*'
   workflow_call:
 jobs:
   test:
