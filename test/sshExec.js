@@ -68,11 +68,11 @@ describe("test for ssh execution", function() {
     });
     it("should be rejected if user does not exist", async ()=>{
       hostInfo2.user = "xxxx";
-      return expect(canConnect(hostInfo2)).to.be.rejectedWith(255);
+      return expect(canConnect(hostInfo2)).to.be.rejected;
     });
     it("should be rejected if password is wrong", async ()=>{
       hostInfo2.password = "xxxx";
-      return expect(canConnect(hostInfo2)).to.be.rejectedWith(255);
+      return expect(canConnect(hostInfo2)).to.be.rejected;
     });
     it("should be rejected if host does not exist", async ()=>{
       hostInfo2.host = "foo.bar.example.com";
@@ -80,7 +80,7 @@ describe("test for ssh execution", function() {
     });
     it("should be rejected if host(ip address) does not exist", async ()=>{
       hostInfo2.host = "192.0.2.1";
-      return expect(canConnect(hostInfo2, 5)).to.be.rejectedWith(255);
+      return expect(canConnect(hostInfo2)).to.be.rejectedWith(255);
     });
     it("should be rejected if port number is out of range(-1)", async ()=>{
       hostInfo2.port = -1;

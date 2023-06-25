@@ -154,7 +154,7 @@ describe("test rsync exec", function() {
         await send(hostInfo, [localRoot], remoteEmptyDir);
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, output);
-        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, output);
@@ -164,7 +164,7 @@ describe("test rsync exec", function() {
         await send(hostInfo, [path.resolve(localRoot)], remoteEmptyDir);
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, output);
-        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, output);
@@ -174,7 +174,7 @@ describe("test rsync exec", function() {
         await send(hostInfo, [localRoot], path.posix.join(remoteHome, remoteEmptyDir));
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, output);
-        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, output);
@@ -184,7 +184,7 @@ describe("test rsync exec", function() {
         await send(hostInfo, [path.resolve(localRoot)], path.posix.join(remoteHome, remoteEmptyDir));
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, output);
-        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, output);
@@ -205,7 +205,7 @@ describe("test rsync exec", function() {
         await send(hostInfo, [localRoot], remoteEmptyDir, ["--exclude=ba*", "--exclude=hoge*}"]);
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, output);
-        expect(formatLsOutput(rt)).to.have.members(["foo", "hoge"]);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "hoge", "huga"]);
       });
       it.skip("[not implemented] should send directory tree if only filter matched but exclude filter not matched", async ()=>{
         await send(hostInfo, [localRoot], remoteEmptyDir, "*/{ba*,hoge/*}", "**/poyo");
@@ -217,8 +217,8 @@ describe("test rsync exec", function() {
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo"]);
       });
-      it("shoud not send empty directory", async ()=>{
-        await send(hostInfo, [localEmptyDir], remoteEmptyDir);
+      it("shoud not send empty directory with -m option", async ()=>{
+        await send(hostInfo, [localEmptyDir], remoteEmptyDir, ["-m"]);
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, output);
         expect(rt).to.have.lengthOf(0);
@@ -318,7 +318,7 @@ describe("test rsync exec", function() {
         await recv(hostInfo, [remoteRoot], localEmptyDir);
 
         let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
-        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
       });
@@ -326,7 +326,7 @@ describe("test rsync exec", function() {
         await recv(hostInfo, [path.posix.join(remoteHome, remoteRoot)], localEmptyDir);
 
         let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
-        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
       });
@@ -334,7 +334,7 @@ describe("test rsync exec", function() {
         await recv(hostInfo, [remoteRoot], path.resolve(localEmptyDir));
 
         let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
-        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
       });
@@ -342,7 +342,7 @@ describe("test rsync exec", function() {
         await recv(hostInfo, [path.posix.join(remoteHome, remoteRoot)], path.resolve(localEmptyDir));
 
         let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
-        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge"]);
+        expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
       });
@@ -358,7 +358,7 @@ describe("test rsync exec", function() {
         await recv(hostInfo, [remoteRoot], localEmptyDir, ["--exclude=*/ba*", "--exclude=hoge"]);
 
         const rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
-        expect(rt2).to.have.members(["foo"]);
+        expect(rt2).to.have.members(["foo", "huga"]);
       });
       it.skip("[not implemented] should recv files which matches only filter but should not recv which matches exclude filter", async ()=>{
         await recv(hostInfo, [remoteRoot], localEmptyDir, "*/{ba*,hoge/*}", "**/piyo");
