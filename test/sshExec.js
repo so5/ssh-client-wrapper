@@ -16,7 +16,7 @@ const sshout = sinon.stub();
 const { sshExec, canConnect, disconnect } = require("../lib/sshExec.js");
 
 //test helpers
-const hostInfo = require("./util/hostInfo.js");
+let hostInfo = require("./util/hostInfo.js");
 const { nonExisting } = require("./util/testFiles.js");
 
 
@@ -58,37 +58,44 @@ describe("test for ssh execution", function() {
     });
   });
   describe("#canConnect", ()=>{
-    let hostInfo2;
+    let hostInfoBak;
     beforeEach(async ()=>{
-      hostInfo2 = { ...hostInfo };
       await disconnect(hostInfo);
+      hostInfo.masterPty = null;
+      hostInfoBak = { ...hostInfo };
+    });
+    afterEach(()=>{
+      const masterPty = hostInfo.masterPty;
+      hostInfo = { ...hostInfoBak };
+      hostInfo.masterPty = masterPty;
     });
     it("should be resolved with true", async ()=>{
       expect(await canConnect(hostInfo, 2)).to.be.true;
     });
     it("should be rejected if user does not exist", async ()=>{
-      hostInfo2.user = "xxxx";
-      return expect(canConnect(hostInfo2, 2)).to.be.rejected;
+      hostInfo.user = "xxxx";
+      return expect(canConnect(hostInfo, 2)).to.be.rejected;
     });
     it("should be rejected if password is wrong", async ()=>{
-      hostInfo2.password = "xxxx";
-      return expect(canConnect(hostInfo2, 2)).to.be.rejected;
+      hostInfo.password = "xxxx";
+      return expect(canConnect(hostInfo, 2)).to.be.rejected;
     });
     it("should be rejected if host does not exist", async ()=>{
-      hostInfo2.host = "foo.bar.example.com";
-      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith(255);
+      hostInfo.host = "foo.bar.example.com";
+      return expect(canConnect(hostInfo, 2)).to.be.rejectedWith(255);
     });
     it("should be rejected if host(ip address) does not exist", async ()=>{
-      hostInfo2.host = "192.0.2.1";
-      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith(255);
+      hostInfo.host = "192.0.2.1";
+      hostInfo.ConnectTimeout = 8; //please note test will be timed out in 10 seconds
+      return expect(canConnect(hostInfo, 2)).to.be.rejectedWith(255);
     });
     it("should be rejected if port number is out of range(-1)", async ()=>{
-      hostInfo2.port = -1;
-      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith(255);
+      hostInfo.port = -1;
+      return expect(canConnect(hostInfo, 2)).to.be.rejectedWith(255);
     });
     it("should be rejected if port number is out of range(65536)", async ()=>{
-      hostInfo2.port = 65536;
-      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith(255);
+      hostInfo.port = 65536;
+      return expect(canConnect(hostInfo, 2)).to.be.rejectedWith(255);
     });
   });
 });
