@@ -21,7 +21,7 @@ const { nonExisting } = require("./util/testFiles.js");
 
 
 describe("test for ssh execution", function() {
-  this.timeout(10000);//eslint-disable-line no-invalid-this
+  this.timeout(20000);//eslint-disable-line no-invalid-this
   beforeEach(()=>{
     sshout.reset();
   });
@@ -86,7 +86,7 @@ describe("test for ssh execution", function() {
     });
     it("should be rejected if host(ip address) does not exist", async ()=>{
       hostInfo.host = "192.0.2.1";
-      hostInfo.ConnectTimeout = 8; //please note test will be timed out in 10 seconds
+      hostInfo.ConnectTimeout = 8; //please note each test will be timed out in 20 seconds
       return expect(canConnect(hostInfo, 2)).to.be.rejectedWith(255);
     });
     it("should be rejected if port number is out of range(-1)", async ()=>{
