@@ -18,7 +18,7 @@ const { sshExec, canConnect, disconnect, ls } = require("../lib/sshExec.js");
 
 //test helpers
 const hostInfo = require("./util/hostInfo.js");
-const { clearRemoteTestFiles, createRemoteFiles, nonExisting, remoteRoot } = require("./util/testFiles.js");
+const { clearRemoteTestFiles, createRemoteFiles, nonExisting, remoteRoot, remoteEmptyDir } = require("./util/testFiles.js");
 
 
 describe("test for ssh execution", function() {
@@ -128,6 +128,9 @@ describe("test for ssh execution", function() {
       expect(await ls(hostInfo, path.posix.join(remoteRoot, "hoge/*yo"))).to.have.members(["piyo", "puyo", "poyo"].map((e)=>{
         return path.posix.join(remoteRoot, "hoge", e);
       }));
+    });
+    it("should return empty array if specified target is empty directory", async ()=>{
+      expect(await ls(hostInfo, remoteEmptyDir)).to.be.an("array").that.is.empty;
     });
   });
 });
