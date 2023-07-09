@@ -63,9 +63,7 @@ describe("test rsync exec", function() {
       await clearRemoteTestFiles(hostInfo);
       await clearLocalTestFiles();
     }
-    after(async ()=>{
-      await disconnect(hostInfo);
-    });
+    await disconnect(hostInfo);
   });
   describe("#send", async ()=>{
     describe("send single file", ()=>{
