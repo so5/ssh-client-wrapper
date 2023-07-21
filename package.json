@@ -13,9 +13,12 @@
   ],
   "main": "lib/index.js",
   "scripts": {
-    "test": "mocha --recursive test",
+    "mocha": "mocha --recursive test",
     "lint": "eslint --fix lib test",
-    "postversion": "git push && git push origin $(git describe --abbrev=0 --tags)"
+    "test": "nyc --reporter=html --reporter=text mocha",
+    "coverage": "nyc report --reporter=text-lcov > coverage-report.lcov",
+    "postversion": "git push && git push origin $(git describe --abbrev=0 --tags)",
+    "prepare": "husky install"
   },
   "engines": {
     "node": ">=12.9"
@@ -27,11 +30,6 @@
     "url": "https://github.com/so5/ssh-client-wrapper"
   },
   "homepage": "https://github.com/so5/ssh-client-wrapper#readme",
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
     "*.js": "eslint --fix"
   },
@@ -39,6 +37,7 @@
     "debug": "^4.3.4",
     "glob": "^10.2.2",
     "node-pty": "^0.10.1",
+    "nyc": "^15.1.0",
     "promise-retry": "^2.0.1"
   },
   "devDependencies": {
@@ -52,7 +51,7 @@
     "eslint-plugin-jsdoc": "^43.0.6",
     "eslint-plugin-node": "^11.1.0",
     "fs-extra": "^11.1.1",
-    "husky": "^8.0.3",
+    "husky": "^8.0.0",
     "lint-staged": "^13.2.1",
     "mocha": "^10.2.0",
     "sinon": "^15.0.3",

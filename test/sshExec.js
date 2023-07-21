@@ -18,8 +18,7 @@ const { sshExec, canConnect, disconnect, ls } = require("../lib/sshExec.js");
 
 //test helpers
 const hostInfo = require("./util/hostInfo.js");
-const { clearRemoteTestFiles, createRemoteFiles, nonExisting, remoteRoot, remoteEmptyDir } = require("./util/testFiles.js");
-
+const { clearRemoteTestFiles, clearLocalTestFiles, createRemoteFiles, nonExisting, remoteRoot, remoteEmptyDir } = require("./util/testFiles.js");
 
 describe("test for ssh execution", function() {
   this.timeout(20000);//eslint-disable-line no-invalid-this
@@ -30,6 +29,7 @@ describe("test for ssh execution", function() {
   after(async ()=>{
     if (!process.env.TEST_KEEP_FILES) {
       await clearRemoteTestFiles(hostInfo);
+      await clearLocalTestFiles();
     }
     await disconnect(hostInfo);
   });
