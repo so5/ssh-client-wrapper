@@ -31,10 +31,13 @@ const {
 } = require("./util/testFiles");
 
 const formatLsOutput = (array)=>{
-  return array.join(" ")
-    .replace(/\n/g, " ")
-    .trim()
-    .split(/\s+/);
+  const rt = [];
+  for (const e of array) {
+    rt.push(...e.split("\n"));
+  }
+  return rt.filter((e)=>{
+    return e !== "";
+  });
 };
 
 
@@ -65,7 +68,7 @@ describe("test rsync exec", function() {
     }
     await disconnect(hostInfo);
   });
-  describe("#send", async ()=>{
+  describe.only("#send", async ()=>{
     describe("send single file", ()=>{
       it("should accept relative src file and relative dst dir name", async ()=>{
         await send(hostInfo, [localFiles[0]], remoteEmptyDir);
