@@ -45,10 +45,10 @@ jobs:
     name: coverage report
     runs-on: ubuntu-latest
     env:
-      CC_TEST_REPORTER_ID: ${{ secrets.cc_test_reporter_id }}
+      CC_TEST_REPORTER_ID: ${{ secrets.ccid }}
     steps:
       - run: echo ${CC_TEST_REPORTER_ID}
-      - run: echo '${{ toJSON(secrets.cc_test_reporter_id) }}'
+      - run: echo '${{ toJSON(secrets.ccid) }}'
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
