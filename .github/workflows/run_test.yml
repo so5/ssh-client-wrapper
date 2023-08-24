@@ -44,11 +44,12 @@ jobs:
     needs: [test]
     name: coverage report
     runs-on: ubuntu-latest
+    secrets: inherit
     env:
-      CC_TEST_REPORTER_ID: 52ae52d099fd6546c12030f23b20e2a4e0b485c6a1b139ec11e3615ab073e689
+      CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
     steps:
       - run: echo ${CC_TEST_REPORTER_ID}
-      - run: echo '${{ toJSON(secrets.ccid) }}'
+      - run: echo '${{ toJSON(secrets.CC_TEST_REPORTER_ID) }}'
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
