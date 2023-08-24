@@ -68,7 +68,7 @@ describe("test rsync exec", function() {
     }
     await disconnect(hostInfo);
   });
-  describe.only("#send", async ()=>{
+  describe("#send", async ()=>{
     describe("send single file", ()=>{
       it("should accept relative src file and relative dst dir name", async ()=>{
         await send(hostInfo, [localFiles[0]], remoteEmptyDir);

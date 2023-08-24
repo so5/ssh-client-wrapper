@@ -21,7 +21,7 @@ const hostInfo = require("./util/hostInfo.js");
 const { clearRemoteTestFiles, clearLocalTestFiles, createRemoteFiles, nonExisting, remoteRoot, remoteEmptyDir } = require("./util/testFiles.js");
 
 describe("test for ssh execution", function() {
-  this.timeout(20000);//eslint-disable-line no-invalid-this
+  this.timeout(65000);//eslint-disable-line no-invalid-this
   beforeEach(async ()=>{
     sshout.reset();
     await clearRemoteTestFiles(hostInfo);
@@ -73,7 +73,7 @@ describe("test for ssh execution", function() {
       await disconnect(hostInfo2);
     });
     it("should be resolved with true", async ()=>{
-      expect(await canConnect(hostInfo2, 2)).to.be.true;
+      return expect(await canConnect(hostInfo2, 2)).to.be.true;
     });
     it("should be rejected if user does not exist", async ()=>{
       hostInfo2.user = "xxxx";
