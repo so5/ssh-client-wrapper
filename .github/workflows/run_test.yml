@@ -41,10 +41,10 @@ jobs:
           path: coverage-report.lcov
           retention-days: 1
   coverage:
+    secrets: inherit
     needs: [test]
     name: coverage report
     runs-on: ubuntu-latest
-    secrets: inherit
     env:
       CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
     steps:
