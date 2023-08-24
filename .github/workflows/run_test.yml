@@ -47,8 +47,10 @@ jobs:
     env:
       CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
     steps:
-      - run: echo ${CC_TEST_REPORTER_ID}
-      - run: echo ${{ secrets.CC_TEST_REPORTER_ID }}
+      - run: |
+        echo ${CC_TEST_REPORTER_ID}
+      - run: |
+        echo ${{ secrets.CC_TEST_REPORTER_ID }}
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
