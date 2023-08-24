@@ -5,6 +5,7 @@ on:
       - 'v*'
     branches:
       - '*'
+      - '!main'
   workflow_call:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -43,13 +44,13 @@ jobs:
     needs: [test]
     name: coverage report
     runs-on: ubuntu-latest
+    env:
+      CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: code-coverage-report
       - uses: paambaati/codeclimate-action@v5.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.cc_test_reporter_id }}
         with:
           coverageLocations: "coverage-report.lcov:lcov"
