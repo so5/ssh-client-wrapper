@@ -54,4 +54,4 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageLocations: "coverage-report.lcov:lcov"
-        secrets: inherit
+          debug: true
