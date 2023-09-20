@@ -4,6 +4,8 @@ on:
     tags:
       - 'v*'
 jobs:
+  test:
+    uses: ./.github/workflows/run_test.yml
   coverage:
     needs:
       - test
