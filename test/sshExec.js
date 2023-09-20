@@ -36,14 +36,14 @@ describe("test for ssh execution", function() {
   describe("#exec", ()=>{
     const testText = "hoge";
     it("should execute single command with stdout", async ()=>{
-      const rt = await sshExec(hostInfo, `echo ${testText}`, sshout);
+      const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout);
       expect(rt).to.equal(0);
       expect(sshout).to.be.called;
 
       expect(sshout).to.be.calledWithMatch(/^hoge/);
     });
     it("should execute single command with stderr", async ()=>{
-      const rt = await sshExec(hostInfo, `echo ${testText} >&2`, sshout);
+      const rt = await sshExec(hostInfo, `echo ${testText} >&2`, 0, sshout);
       expect(rt).to.equal(0);
       expect(sshout).to.be.called;
       expect(sshout).to.be.calledWithMatch(/^hoge/);
@@ -60,6 +60,9 @@ describe("test for ssh execution", function() {
     it("should resolve with 127 if command is not found", async ()=>{
       const rt = await sshExec(hostInfo, `./${nonExisting}`);
       expect(rt).to.equal(127);
+    });
+    it("should be rejected if timeout expired", async ()=>{
+      return expect(sshExec(hostInfo, "sleep 60", 1)).to.be.rejectedWith("watchdog timer expired");
     });
   });
   describe("#canConnect", ()=>{
@@ -106,31 +109,31 @@ describe("test for ssh execution", function() {
       await createRemoteFiles(hostInfo);
     });
     it("should return array of file and directory names in the specified directory", async ()=>{
-      expect(await ls(hostInfo, remoteRoot)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
+      expect(await ls(hostInfo, remoteRoot, [], 0)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
     });
     it("should return array which has only specified file", async ()=>{
-      expect(await ls(hostInfo, path.posix.join(remoteRoot, "foo"))).to.eql([path.posix.join(remoteRoot, "foo")]);
+      expect(await ls(hostInfo, path.posix.join(remoteRoot, "foo"), [], 0)).to.eql([path.posix.join(remoteRoot, "foo")]);
     });
     it("should return 'No such file or directory' if non-existing path is specified", async ()=>{
-      expect(await ls(hostInfo, path.posix.join(remoteRoot, nonExisting))).to.match(/No such file or directory/);
+      expect(await ls(hostInfo, path.posix.join(remoteRoot, nonExisting), [], 0)).to.match(/No such file or directory/);
     });
     it("should return only matched filenames, if glob is specified", async ()=>{
-      expect(await ls(hostInfo, path.posix.join(remoteRoot, "b*"))).to.have.members(["bar", "baz"].map((e)=>{
+      expect(await ls(hostInfo, path.posix.join(remoteRoot, "b*"), [], 0)).to.have.members(["bar", "baz"].map((e)=>{
         return path.posix.join(remoteRoot, e);
       }));
     });
     it("should return only matched filenames src contains multipl glob pattern", async ()=>{
-      expect(await ls(hostInfo, path.posix.join(remoteRoot, "h*", "p[iu]yo"))).to.have.members(["piyo", "puyo"].map((e)=>{
+      expect(await ls(hostInfo, path.posix.join(remoteRoot, "h*", "p[iu]yo"), [], 0)).to.have.members(["piyo", "puyo"].map((e)=>{
         return path.posix.join(remoteRoot, "hoge", e);
       }));
     });
     it("should return only matched filenames, if specified glob contains /", async ()=>{
-      expect(await ls(hostInfo, path.posix.join(remoteRoot, "hoge/*yo"))).to.have.members(["piyo", "puyo", "poyo"].map((e)=>{
+      expect(await ls(hostInfo, path.posix.join(remoteRoot, "hoge/*yo"), [], 0)).to.have.members(["piyo", "puyo", "poyo"].map((e)=>{
         return path.posix.join(remoteRoot, "hoge", e);
       }));
     });
     it("should return empty array if specified target is empty directory", async ()=>{
-      expect(await ls(hostInfo, remoteEmptyDir)).to.be.an("array").that.is.empty;
+      expect(await ls(hostInfo, remoteEmptyDir, [], 0)).to.be.an("array").that.is.empty;
     });
   });
 });
