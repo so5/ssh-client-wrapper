@@ -1,0 +1,22 @@
+name: report coverage data to code climate
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  coverage:
+    needs:
+      - test
+    name: coverage report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: code-coverage-report
+      - uses: paambaati/codeclimate-action@v5.0.0
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        with:
+          coverageLocations: "coverage-report.lcov:lcov"
+          debug: true
