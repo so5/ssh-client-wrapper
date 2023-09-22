@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "debug": "^4.3.4",
-    "glob": "^10.3.3",
+    "glob": "^10.3.4",
     "node-pty": "^0.10.1",
     "nyc": "^15.1.0",
     "promise-retry": "^2.0.1",
