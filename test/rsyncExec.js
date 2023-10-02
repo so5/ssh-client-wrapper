@@ -370,6 +370,14 @@ describe("test rsync exec", function() {
         expect(rt2).to.have.members(["puyo", "poyo"]);
       });
     });
+    describe("degration check", ()=>{
+      it("should recieve multiple files from remote machine", async ()=>{
+        await recv(hostInfo, [path.posix.join(remoteRoot, "foo"),
+          path.posix.join(remoteRoot, "bar"), path.posix.join(remoteRoot, "baz")], localEmptyDir, [], 0);
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["foo", "bar", "baz"]);
+      });
+    });
     describe("error case", ()=>{
       it("should not send directory to existing file path", ()=>{
         return expect(recv(hostInfo, [remoteRoot], localFiles[0], [], 0)).to.be.rejected;
