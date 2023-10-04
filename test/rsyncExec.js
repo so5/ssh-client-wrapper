@@ -1,6 +1,18 @@
 "use strict";
 const fs = require("fs-extra");
 const path = require("path");
+const util = require("util");
+const exec = util.promisify(require("node:child_process").exec);
+
+/**
+ * to enable debug log dynamically
+ * (1) enable folloing line
+ *          const debug = require("debug");
+ * (2) insert this line into the beginning of it()
+ *         debug.enable("ssh*");
+ * (3) insert this line into the end of it()
+ *         debug.disable();
+ **/
 
 process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
 Error.traceLimit = 100000;
@@ -12,7 +24,7 @@ chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
 
 //testee
-const { send, recv } = require("../lib/rsyncExec.js");
+const { checkRsyncVersion, send, recv } = require("../lib/rsyncExec.js");
 
 //test helpers
 const { sshExec, disconnect } = require("../lib/sshExec.js");
@@ -42,6 +54,13 @@ const formatLsOutput = (array)=>{
 
 
 //actual test start from here
+describe("test checkRsyncVersion", async ()=>{
+  const { major, minor, patch } = await checkRsyncVersion(1);
+  const versionString = `${major}.${minor}.${patch}`;
+  const { stdout } = await exec("rsync --version |grep 'version'");
+  expect(stdout).to.match(new RegExp(versionString));
+});
+
 describe("test rsync exec", function() {
   this.timeout(10000);//eslint-disable-line no-invalid-this
   const rt = [];

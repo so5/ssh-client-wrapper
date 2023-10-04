@@ -56,7 +56,7 @@ describe("test for interface", ()=>{
   describe("test for public method", ()=>{
     let ssh;
     const hostInfoOrg = { host: "hoge" };
-    const hostInfo = { ...hostInfoOrg, masterPty: null };
+    const hostInfo = { ...hostInfoOrg, masterPty: null, rsyncVersion: null };
     beforeEach(()=>{
       ssh = new SshClientWrapper(hostInfoOrg);
       sshExec.reset();
