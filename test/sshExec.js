@@ -76,7 +76,7 @@ describe("test for ssh execution", function() {
       await disconnect(hostInfo2);
     });
     it("should be resolved with true", async ()=>{
-      return expect(await canConnect(hostInfo2, 2)).to.be.true;
+      return expect(await canConnect(hostInfo2, 5)).to.be.true;
     });
     it("should be rejected if user does not exist", async ()=>{
       hostInfo2.user = "xxxx";

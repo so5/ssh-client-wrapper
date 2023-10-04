@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  test-bed:
+    image: naoso5/test-sshd
+    ports:
+      - 4000:22
+    container_name: testbed
+  tester:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      TEST_USER: testuser
+      TEST_PW: passw0rd
+      TEST_HOST: testbed
+    working_dir: /work/ssh-client-wrapper
+    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run test"

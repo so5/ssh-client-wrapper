@@ -57,6 +57,7 @@ const formatLsOutput = (array)=>{
 describe("test checkRsyncVersion", async ()=>{
   const { major, minor, patch } = await checkRsyncVersion(1);
   const versionString = `${major}.${minor}.${patch}`;
+  console.log(`==== test with rsync version ${versionString} ====`); //eslint-disable-line no-console
   const { stdout } = await exec("rsync --version |grep 'version'");
   expect(stdout).to.match(new RegExp(versionString));
 });
@@ -389,7 +390,7 @@ describe("test rsync exec", function() {
         expect(rt2).to.have.members(["puyo", "poyo"]);
       });
     });
-    describe("degration check", ()=>{
+    describe("degradation check", ()=>{
       it("should recieve multiple files from remote machine", async ()=>{
         await recv(hostInfo, [path.posix.join(remoteRoot, "foo"),
           path.posix.join(remoteRoot, "bar"), path.posix.join(remoteRoot, "baz")], localEmptyDir, [], 0);
