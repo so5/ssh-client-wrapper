@@ -17,8 +17,8 @@ const sshout = sinon.stub();
 const { sshExec, canConnect, disconnect, ls } = require("../lib/sshExec.js");
 
 //test helpers
-const hostInfo = require("./util/hostInfo.js");
-const { clearRemoteTestFiles, clearLocalTestFiles, createRemoteFiles, nonExisting, remoteRoot, remoteEmptyDir } = require("./util/testFiles.js");
+const hostInfo = require("./testUtil/hostInfo.js");
+const { clearRemoteTestFiles, clearLocalTestFiles, createRemoteFiles, nonExisting, remoteRoot, remoteEmptyDir } = require("./testUtil/testFiles.js");
 
 describe("test for ssh execution", function() {
   this.timeout(65000);//eslint-disable-line no-invalid-this

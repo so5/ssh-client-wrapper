@@ -28,7 +28,7 @@ const { checkRsyncVersion, send, recv } = require("../lib/rsyncExec.js");
 
 //test helpers
 const { sshExec, disconnect } = require("../lib/sshExec.js");
-const hostInfo = require("./util/hostInfo.js");
+const hostInfo = require("./testUtil/hostInfo.js");
 const {
   clearLocalTestFiles,
   clearRemoteTestFiles,
@@ -40,7 +40,7 @@ const {
   remoteRoot,
   remoteEmptyDir,
   remoteFiles
-} = require("./util/testFiles");
+} = require("./testUtil/testFiles");
 
 const formatLsOutput = (array)=>{
   const rt = [];
