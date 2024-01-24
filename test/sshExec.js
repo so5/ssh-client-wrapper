@@ -97,11 +97,11 @@ describe("test for ssh execution", function() {
     });
     it("should be rejected if port number is out of range(-1)", async ()=>{
       hostInfo2.port = -1;
-      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith(255);
+      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith("invalid port specified -1");
     });
     it("should be rejected if port number is out of range(65536)", async ()=>{
       hostInfo2.port = 65536;
-      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith(255);
+      return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith("invalid port specified 65536");
     });
   });
   describe("#ls", ()=>{

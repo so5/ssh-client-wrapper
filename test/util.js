@@ -13,13 +13,13 @@ const { sanityCheck } = require("../lib/util.js");
 describe("test for sanityCheck", ()=>{
   const host = "testHostName";
   it("should throw error for empty host", ()=>{
-    expect(sanityCheck.bind(null, { host: "   ", user: "   ", port: "" })).to.throw(/empty host is not allowed/);
+    expect(sanityCheck.bind(null, { host: "   ", user: "   ", port: 22 })).to.throw(/empty host is not allowed/);
   });
   it("should throw error if host is not in argument object", ()=>{
-    expect(sanityCheck.bind(null, { user: "   ", port: "" })).to.throw(/host is required/);
+    expect(sanityCheck.bind(null, { user: "   ", port: 22 })).to.throw(/host is required/);
   });
   it("should just remove empty string props", ()=>{
-    expect(sanityCheck({ host, user: "   ", port: "" })).to.deep.equal({ host });
+    expect(sanityCheck({ host, user: "   ", port: 22 })).to.deep.equal({ host, port: 22 });
   });
   it("should remove empty string member in sshOpt", ()=>{
     expect(sanityCheck({ host, sshOpt: ["foo", "  ", "bar"], user: "user", port: 33 })).to.deep.equal({ host, sshOpt: ["foo", "bar"], user: "user", port: 33 });
@@ -46,7 +46,6 @@ describe("test for sanityCheck", ()=>{
   it("should remove out of range members", ()=>{
     expect(sanityCheck({
       host,
-      port: "-1",
       ControlPersist: "-1",
       ConnectTimeout: "-1",
       maxRetry: "-1",

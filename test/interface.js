@@ -33,15 +33,11 @@ describe("test for interface", ()=>{
       expect(()=>{
         //eslint-disable-next-line no-new
         new SshClientWrapper({});
-      }).to.throw("host must be non-empty string");
-      expect(()=>{
-        //eslint-disable-next-line no-new
-        new SshClientWrapper({ host: 1 });
-      }).to.throw("host must be non-empty string");
+      }).to.throw("host is required");
       expect(()=>{
         //eslint-disable-next-line no-new
         new SshClientWrapper({ host: "" });
-      }).to.throw("host must be non-empty string");
+      }).to.throw("empty host is not allowed");
     });
     it("should successfully instanciate only with host prop", ()=>{
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("exec");

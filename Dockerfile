@@ -1,5 +1,4 @@
 # syntax=docker/dockerfile:1
-#build WHEEL client code
 FROM --platform=linux/amd64 node:hydrogen-bookworm-slim
 #FROM --platform=linux/amd64 node:hydrogen-bullseye-slim
 #FROM --platform=linux/amd64 node:hydrogen-buster-slim
