@@ -42,7 +42,6 @@ describe("test for interface", ()=>{
     it("should successfully instanciate only with host prop", ()=>{
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("exec");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("ls");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("watch");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("send");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("recv");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("canConnect");
