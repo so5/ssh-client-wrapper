@@ -4,9 +4,3 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/8f3c0ea00e755ae31081/maintainability)](https://codeclimate.com/github/so5/ssh-client-wrapper/maintainability)
 # ssh-client-wrapper
 open ssh client wrapper library for nodejs
-
-
-# how to test on local machine
-```
-docker-compose up --build
-```

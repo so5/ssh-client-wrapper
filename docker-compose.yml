@@ -1,9 +1,9 @@
 version: "3.8"
 services:
-  test-bed:
+  testbed:
     image: naoso5/test-sshd
     ports:
-      - 4000:22
+      - "4000:22"
     container_name: testbed
   tester:
     build:
@@ -14,4 +14,24 @@ services:
       TEST_PW: passw0rd
       TEST_HOST: testbed
     working_dir: /work/ssh-client-wrapper
-    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run test"
+    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run mocha"
+  tester-bullseye:
+    build:
+      context: .
+      dockerfile: Dockerfile-bullseye
+    environment:
+      TEST_USER: testuser
+      TEST_PW: passw0rd
+      TEST_HOST: testbed
+    working_dir: /work/ssh-client-wrapper
+    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run mocha"
+  tester-buster:
+    build:
+      context: .
+      dockerfile: Dockerfile-buster
+    environment:
+      TEST_USER: testuser
+      TEST_PW: passw0rd
+      TEST_HOST: testbed
+    working_dir: /work/ssh-client-wrapper
+    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run mocha"
