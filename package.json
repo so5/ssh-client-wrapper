@@ -46,7 +46,6 @@
     "chai-as-promised": "^7.1.1",
     "chai-fs": "^2.0.0",
     "eslint": "^8.38.0",
-    "eslint-config-eslint": "^7.0.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-chai-expect": "^3.0.0",
     "eslint-plugin-chai-friendly": "^0.7.4",

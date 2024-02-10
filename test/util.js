@@ -1,30 +1,29 @@
 "use strict";
-process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
+process.on("unhandledRejection", console.dir); // eslint-disable-line no-console
 
-//setup test framework
+// setup test framework
 const chai = require("chai");
 const { expect } = require("chai");
 chai.use(require("chai-as-promised"));
 
-
-//testee
+// testee
 const { sanityCheck } = require("../lib/util.js");
 
-describe("test for sanityCheck", ()=>{
+describe("test for sanityCheck", () => {
   const host = "testHostName";
-  it("should throw error for empty host", ()=>{
+  it("should throw error for empty host", () => {
     expect(sanityCheck.bind(null, { host: "   ", user: "   ", port: 22 })).to.throw(/empty host is not allowed/);
   });
-  it("should throw error if host is not in argument object", ()=>{
+  it("should throw error if host is not in argument object", () => {
     expect(sanityCheck.bind(null, { user: "   ", port: 22 })).to.throw(/host is required/);
   });
-  it("should just remove empty string props", ()=>{
+  it("should just remove empty string props", () => {
     expect(sanityCheck({ host, user: "   ", port: 22 })).to.deep.equal({ host, port: 22 });
   });
-  it("should remove empty string member in sshOpt", ()=>{
+  it("should remove empty string member in sshOpt", () => {
     expect(sanityCheck({ host, sshOpt: ["foo", "  ", "bar"], user: "user", port: 33 })).to.deep.equal({ host, sshOpt: ["foo", "bar"], user: "user", port: 33 });
   });
-  it("should just chage type if string value specified for number", ()=>{
+  it("should just chage type if string value specified for number", () => {
     expect(sanityCheck({
       host,
       port: "11",
@@ -43,7 +42,7 @@ describe("test for sanityCheck", ()=>{
       retryMaxTimeout: 66
     });
   });
-  it("should remove out of range members", ()=>{
+  it("should remove out of range members", () => {
     expect(sanityCheck({
       host,
       ControlPersist: "-1",
@@ -55,7 +54,7 @@ describe("test for sanityCheck", ()=>{
       host
     });
   });
-  it("should just chage type if string value specified for boolean member", ()=>{
+  it("should just chage type if string value specified for boolean member", () => {
     expect(sanityCheck({
       host,
       noStrictHostkeyChecking: "true"
@@ -64,7 +63,7 @@ describe("test for sanityCheck", ()=>{
       noStrictHostkeyChecking: true
     });
   });
-  it("should just chage type if number value specified for boolean member", ()=>{
+  it("should just chage type if number value specified for boolean member", () => {
     expect(sanityCheck({
       host,
       noStrictHostkeyChecking: 0
