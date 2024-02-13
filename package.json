@@ -1,6 +1,6 @@
 {
   "name": "ssh-client-wrapper",
-  "version": "2.2.5",
+  "version": "2.2.6",
   "description": "wrapper library for open ssh client and rsync",
   "keywords": [
     "ssh",
