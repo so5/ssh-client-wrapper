@@ -23,7 +23,7 @@ describe("test for sanityCheck", () => {
   it("should remove empty string member in sshOpt", () => {
     expect(sanityCheck({ host, sshOpt: ["foo", "  ", "bar"], user: "user", port: 33 })).to.deep.equal({ host, sshOpt: ["foo", "bar"], user: "user", port: 33 });
   });
-  it("should just chage type if string value specified for number", () => {
+  it("should just change type if string value specified for number", () => {
     expect(sanityCheck({
       host,
       port: "11",
@@ -54,7 +54,7 @@ describe("test for sanityCheck", () => {
       host
     });
   });
-  it("should just chage type if string value specified for boolean member", () => {
+  it("should just change type if string value specified for boolean member", () => {
     expect(sanityCheck({
       host,
       noStrictHostkeyChecking: "true"
@@ -63,7 +63,7 @@ describe("test for sanityCheck", () => {
       noStrictHostkeyChecking: true
     });
   });
-  it("should just chage type if number value specified for boolean member", () => {
+  it("should just change type if number value specified for boolean member", () => {
     expect(sanityCheck({
       host,
       noStrictHostkeyChecking: 0
@@ -71,5 +71,13 @@ describe("test for sanityCheck", () => {
       host,
       noStrictHostkeyChecking: false
     });
+  });
+  it("shold keep addtional properties", () => {
+    const testData = {
+      host,
+      hoge: 3,
+      foo: () => {}
+    };
+    expect(sanityCheck(testData)).to.deep.equal(testData);
   });
 });
