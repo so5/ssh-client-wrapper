@@ -49,7 +49,12 @@ describe("test for interface", () => {
   });
   describe("test for public method", () => {
     let ssh;
-    const hostInfoOrg = { host: "hoge" };
+    const hostInfoOrg = {
+      host: "hoge",
+      ControlPersist: 180,
+      maxRetry: 3,
+      retryDuration: 1000
+    };
     const hostInfo = { ...hostInfoOrg, masterPty: null, rsyncVersion: null };
     beforeEach(() => {
       ssh = new SshClientWrapper(hostInfoOrg);

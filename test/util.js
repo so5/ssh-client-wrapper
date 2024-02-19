@@ -11,6 +11,11 @@ const { sanityCheck } = require("../lib/util.js");
 
 describe("test for sanityCheck", () => {
   const host = "testHostName";
+  const defaultValues = {
+    ControlPersist: 180,
+    maxRetry: 3,
+    retryDuration: 1000
+  };
   it("should throw error for empty host", () => {
     expect(sanityCheck.bind(null, { host: "   ", user: "   ", port: 22 })).to.throw(/empty host is not allowed/);
   });
@@ -18,10 +23,29 @@ describe("test for sanityCheck", () => {
     expect(sanityCheck.bind(null, { user: "   ", port: 22 })).to.throw(/host is required/);
   });
   it("should just remove empty string props", () => {
-    expect(sanityCheck({ host, user: "   ", port: 22 })).to.deep.equal({ host, port: 22 });
+    expect(sanityCheck({
+      host,
+      user: "   ",
+      port: 22
+    })).to.deep.equal({
+      host,
+      ...defaultValues,
+      port: 22
+    });
   });
   it("should remove empty string member in sshOpt", () => {
-    expect(sanityCheck({ host, sshOpt: ["foo", "  ", "bar"], user: "user", port: 33 })).to.deep.equal({ host, sshOpt: ["foo", "bar"], user: "user", port: 33 });
+    expect(sanityCheck({
+      host,
+      sshOpt: ["foo", "  ", "bar"],
+      user: "user",
+      port: 33
+    })).to.deep.equal({
+      host,
+      ...defaultValues,
+      sshOpt: ["foo", "bar"],
+      user: "user",
+      port: 33
+    });
   });
   it("should just change type if string value specified for number", () => {
     expect(sanityCheck({
@@ -30,16 +54,14 @@ describe("test for sanityCheck", () => {
       ControlPersist: "22",
       ConnectTimeout: "33",
       maxRetry: "44",
-      retryMinTimeout: "55",
-      retryMaxTimeout: "66"
+      retryDuration: "55"
     })).to.deep.equal({
       host,
       port: 11,
       ControlPersist: 22,
       ConnectTimeout: 33,
       maxRetry: 44,
-      retryMinTimeout: 55,
-      retryMaxTimeout: 66
+      retryDuration: 55
     });
   });
   it("should remove out of range members", () => {
@@ -48,8 +70,7 @@ describe("test for sanityCheck", () => {
       ControlPersist: "-1",
       ConnectTimeout: "-1",
       maxRetry: "-1",
-      retryMinTimeout: "-1",
-      retryMaxTimeout: "-1"
+      retryDuration: "-1"
     })).to.deep.equal({
       host
     });
@@ -60,6 +81,7 @@ describe("test for sanityCheck", () => {
       noStrictHostkeyChecking: "true"
     })).to.deep.equal({
       host,
+      ...defaultValues,
       noStrictHostkeyChecking: true
     });
   });
@@ -69,6 +91,7 @@ describe("test for sanityCheck", () => {
       noStrictHostkeyChecking: 0
     })).to.deep.equal({
       host,
+      ...defaultValues,
       noStrictHostkeyChecking: false
     });
   });
