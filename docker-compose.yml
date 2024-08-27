@@ -3,7 +3,7 @@ services:
   testbed:
     image: naoso5/test-sshd
     ports:
-      - "4000:22"
+      - "4100:22"
     container_name: testbed
   tester:
     build:
