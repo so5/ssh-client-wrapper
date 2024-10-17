@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   testbed:
     image: naoso5/test-sshd
