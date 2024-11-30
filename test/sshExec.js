@@ -19,17 +19,23 @@ const { sshExec, canConnect, disconnect, ls } = require("../lib/sshExec.js");
 // test helpers
 const hostInfo = require("./testUtil/hostInfo.js");
 const { clearRemoteTestFiles, clearLocalTestFiles, createRemoteFiles, nonExisting, remoteRoot, remoteEmptyDir } = require("./testUtil/testFiles.js");
+const { send } = require("../lib/rsyncExec.js");
 
 describe("test for ssh execution", function () {
+  const rcfilePath = "/home/testuser/testrc";
   this.timeout(65000);// eslint-disable-line no-invalid-this
   beforeEach(async () => {
     sshout.reset();
     await clearRemoteTestFiles(hostInfo);
   });
+  before(async () => {
+    await send(hostInfo, [path.resolve(__dirname, "./testUtil/testrc")], rcfilePath, [], 0);
+  });
   after(async () => {
     if (!process.env.TEST_KEEP_FILES) {
       await clearRemoteTestFiles(hostInfo);
       await clearLocalTestFiles();
+      await sshExec(hostInfo, `rm ${rcfilePath}`);
     }
     await disconnect(hostInfo);
   });
@@ -48,8 +54,36 @@ describe("test for ssh execution", function () {
       expect(sshout).to.be.called;
       expect(sshout).to.be.calledWithMatch(/^hoge/);
     });
+    it("should execute 2 command by prependCmd ", async () => {
+      const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null, "echo foo");
+      expect(rt).to.equal(0);
+      expect(sshout).to.be.calledOnce;
+      expect(sshout).to.be.calledWithMatch(/^foo\nhoge\n/);
+    });
+    it("should execute 2 command by hostInfo.prependCmd ", async () => {
+      hostInfo.prependCmd = "echo foo";
+      const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null);
+      expect(rt).to.equal(0);
+      expect(sshout).to.be.calledOnce;
+      expect(sshout).to.be.calledWithMatch(/^foo\nhoge\n/);
+      delete hostInfo.prependCmd;
+    });
+    it("should execute 2 command by rcfile", async () => {
+      const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, rcfilePath);
+      expect(rt).to.equal(0);
+      expect(sshout).to.be.calledOnce;
+      expect(sshout).to.be.calledWithMatch(/^this is test rcfile\nhoge\n/);
+    });
+    it("should execute 2 command by hostInfo.prependCmd ", async () => {
+      hostInfo.rcfile = rcfilePath;
+      const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null);
+      expect(rt).to.equal(0);
+      expect(sshout).to.be.calledOnce;
+      expect(sshout).to.be.calledWithMatch(/^this is test rcfile\nhoge\n/);
+      delete hostInfo.rcfile;
+    });
     // please note that exec() resolves with non-zero value
-    // (126 permisssion deny or 127 file not found)
+    // (126 permission deny or 127 file not found)
     // but does not reject in following 2 cases
     it("should not execute command which do not have exec permission", async () => {
       await sshExec(hostInfo, "echo echo hoge >hoge");

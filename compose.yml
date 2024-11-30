@@ -23,7 +23,7 @@ services:
       TEST_PW: passw0rd
       TEST_HOST: testbed
     working_dir: /work/ssh-client-wrapper
-    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run mocha"
+    command: bash -c "mkdir /root/.ssh 2>/dev/null;  npm run mocha"
   tester-buster:
     build:
       context: .
@@ -33,4 +33,4 @@ services:
       TEST_PW: passw0rd
       TEST_HOST: testbed
     working_dir: /work/ssh-client-wrapper
-    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run mocha"
+    command: bash -c "mkdir /root/.ssh 2>/dev/null;  npm run mocha"
