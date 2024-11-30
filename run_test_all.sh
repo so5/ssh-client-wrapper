@@ -1,27 +1,18 @@
 #!/bin/bash
-
 function cleanup(){
-  docker-compose rm --stop --force testbed
+  docker compose down
 }
-
 trap cleanup EXIT
 set -e -o pipefail
 
-docker-compose up testbed -d
-export TEST_HOST=localhost
-export TEST_USER=testuser
-export TEST_PW=passw0rd
-export TEST_PORT=4000
-ssh-keygen -R '[localhost]:4000'
+./run_test_local.sh keep
 
-npm run test
-echo local test success
-
-docker-compose run --build --rm tester
+docker compose run --build --rm tester
 echo test on latest ubuntu success
 
-docker-compose run --build --rm tester-bullseye
+docker compose run --build --rm tester-bullseye
 echo test on bullseye success
 
-docker-compose run --build --rm tester-buster
+docker compose run --build --rm tester-buster
 echo test on buster success
+docker compose down

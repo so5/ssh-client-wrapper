@@ -78,21 +78,21 @@ describe("test for sanityCheck", () => {
   it("should just change type if string value specified for boolean member", () => {
     expect(sanityCheck({
       host,
-      noStrictHostkeyChecking: "true"
+      noStrictHostKeyChecking: "true"
     })).to.deep.equal({
       host,
       ...defaultValues,
-      noStrictHostkeyChecking: true
+      noStrictHostKeyChecking: true
     });
   });
   it("should just change type if number value specified for boolean member", () => {
     expect(sanityCheck({
       host,
-      noStrictHostkeyChecking: 0
+      noStrictHostKeyChecking: 0
     })).to.deep.equal({
       host,
       ...defaultValues,
-      noStrictHostkeyChecking: false
+      noStrictHostKeyChecking: false
     });
   });
   it("shold keep addtional properties", () => {
