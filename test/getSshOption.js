@@ -1,22 +1,22 @@
 "use strict";
-process.on("unhandledRejection", console.dir); // eslint-disable-line no-console
+process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
 
-// setup test framework
+//setup test framework
 const chai = require("chai");
 const { expect } = require("chai");
 chai.use(require("chai-as-promised"));
 
-// testee
+//testee
 const { getSshOption } = require("../lib/util.js");
 
-describe("test for getSshOption", () => {
+describe("test for getSshOption", ()=>{
   const defaultValues = {
     host: "testHostName",
     ControlPersist: 180,
     maxRetry: 3,
     retryDuration: 1000
   };
-  it("should return minimum ssh option array", () => {
+  it("should return minimum ssh option array", ()=>{
     const sshOpts = getSshOption(defaultValues);
     expect(sshOpts).to.be.an("array");
     expect(sshOpts).to.have.lengthOf(4);
@@ -25,7 +25,7 @@ describe("test for getSshOption", () => {
     expect(sshOpts[2]).to.equal("-oControlPath=~/.ssh/ssh-client-wrapper-%r@%h:%p");
     expect(sshOpts[3]).to.equal("-oControlPersist=180");
   });
-  it("should change ControlPath by ControlPersistDir", () => {
+  it("should change ControlPath by ControlPersistDir", ()=>{
     const hostInfo = { ...defaultValues };
     hostInfo.ControlPersistDir = "/tmp";
     const sshOpts = getSshOption(hostInfo);
@@ -36,7 +36,7 @@ describe("test for getSshOption", () => {
     expect(sshOpts[2]).to.equal("-oControlPath=/tmp/ssh-client-wrapper-%r@%h:%p");
     expect(sshOpts[3]).to.equal("-oControlPersist=180");
   });
-  it("should change ControlPath by Environment variable", () => {
+  it("should change ControlPath by Environment variable", ()=>{
     process.env.SSH_CONTROL_PERSIST_DIR = "/tmp";
     const sshOpts = getSshOption(defaultValues);
     expect(sshOpts).to.be.an("array");
