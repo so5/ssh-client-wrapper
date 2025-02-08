@@ -17,13 +17,12 @@ const SshClientWrapper = rewire("../lib/index.js");
 const sshExec = sinon.stub();
 const canConnect = sinon.stub();
 const disconnect = sinon.stub();
-const ls = sinon.stub();
 const send = sinon.stub();
 const recv = sinon.stub();
 
 //eslint-disable-next-line no-underscore-dangle
 SshClientWrapper.__set__({
-  sshExec, canConnect, disconnect, ls, send, recv
+  sshExec, canConnect, disconnect, send, recv, expect
 });
 
 describe("test for interface", ()=>{
@@ -40,7 +39,9 @@ describe("test for interface", ()=>{
     });
     it("should successfully instanciate only with host prop", ()=>{
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("exec");
+      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("execAndGetOutput");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("ls");
+      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("expect");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("send");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("recv");
       expect(new SshClientWrapper({ host: "hoge" })).to.have.property("canConnect");
@@ -61,7 +62,6 @@ describe("test for interface", ()=>{
       sshExec.reset();
       canConnect.reset();
       disconnect.reset();
-      ls.reset();
       send.reset();
       recv.reset();
     });
@@ -92,15 +92,15 @@ describe("test for interface", ()=>{
     describe("test for ls", ()=>{
       it("should call ls without timeout", ()=>{
         ssh.ls("hoge");
-        expect(ls).to.be.calledWith(hostInfo, "hoge", [], 0);
+        expect(sshExec).to.be.calledWith(hostInfo, "ls  hoge", 0);
       });
       it("should call ls with option", ()=>{
         ssh.ls("hoge", ["-l", "-r", "-t"]);
-        expect(ls).to.be.calledWith(hostInfo, "hoge", ["-l", "-r", "-t"], 0);
+        expect(sshExec).to.be.calledWith(hostInfo, "ls -l -r -t hoge", 0);
       });
       it("should call ls with option and timeout", ()=>{
         ssh.ls("hoge", ["-l", "-r", "-t"], 10);
-        expect(ls).to.be.calledWith(hostInfo, "hoge", ["-l", "-r", "-t"], 10);
+        expect(sshExec).to.be.calledWith(hostInfo, "ls -l -r -t hoge", 10);
       });
     });
     describe("test for send", ()=>{

@@ -137,7 +137,6 @@ export default [
       chaiFriendly,
     },
     languageOptions: {
-      sourceType: "commonjs",
       globals: {
         ...globals.nodeBuiltin,
         ...globals.node,
