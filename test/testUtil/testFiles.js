@@ -47,33 +47,47 @@ const nonExisting = "ARSSH_nonExisting";
 /*
  * prepare local files which contain its filename
  */
-async function createLocalFiles () {
+/**
+ *
+ */
+async function createLocalFiles() {
   const localDir2 = path.join(localRoot, "hoge");
   const promises = [];
   await fs.mkdir(localRoot);
   await fs.mkdir(localDir2);
   promises.push(fs.mkdir(localEmptyDir));
-  localFiles.forEach((localFile) => {
+  localFiles.forEach((localFile)=>{
     promises.push(fs.writeFile(localFile, `${localFile}\n`));
   });
   return Promise.all(promises);
 }
 
-async function clearLocalTestFiles () {
+/**
+ *
+ */
+async function clearLocalTestFiles() {
   return fs.remove(localRoot);
 }
 
-async function createRemoteFiles (hostInfo) {
-  // create remote files
+/**
+ *
+ * @param hostInfo
+ */
+async function createRemoteFiles(hostInfo) {
+  //create remote files
   await sshExec(hostInfo, `mkdir -p ${remoteRoot}/hoge`);
   await sshExec(hostInfo, `mkdir -p ${remoteEmptyDir}`);
-  const script = remoteFiles.reduce((a, remoteFile) => {
+  const script = remoteFiles.reduce((a, remoteFile)=>{
     return `${a}echo ${remoteFile} > ${remoteFile};`;
   }, "");
   return sshExec(hostInfo, `${script}`);
 }
 
-async function clearRemoteTestFiles (hostInfo) {
+/**
+ *
+ * @param hostInfo
+ */
+async function clearRemoteTestFiles(hostInfo) {
   return sshExec(hostInfo, `rm -fr ${remoteRoot}`);
 }
 

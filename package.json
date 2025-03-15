@@ -1,6 +1,6 @@
 {
   "name": "ssh-client-wrapper",
-  "version": "2.11.0",
+  "version": "2.12.2",
   "description": "wrapper library for open ssh client and rsync",
   "keywords": [
     "ssh",
@@ -14,7 +14,7 @@
   "main": "lib/index.js",
   "scripts": {
     "mocha": "mocha --recursive test",
-    "lint": "eslint --fix lib test",
+    "lint": "eslint --fix ./",
     "test": "nyc --reporter=html --reporter=text mocha",
     "coverage": "nyc report --reporter=text-lcov > coverage-report.lcov",
     "postversion": "git push && git push origin $(git describe --abbrev=0 --tags)",
@@ -37,21 +37,19 @@
     "ajv": "^8.17.1",
     "ajv-keywords": "^5.1.0",
     "debug": "^4.4.0",
+    "eslint-plugin-chai-friendly": "^1.0.1",
     "glob": "^10.4.5",
     "node-pty": "^0.10.1",
     "promise-retry": "^2.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@stylistic/eslint-plugin": "^3.0.1",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
     "chai-fs": "^2.0.0",
-    "eslint": "^8.38.0",
-    "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-chai-expect": "^3.0.0",
-    "eslint-plugin-chai-friendly": "^0.7.4",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-n": "^16.6.2",
-    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-jsdoc": "^50.6.3",
+    "eslint-plugin-node": "^11.1.0",
     "fs-extra": "^11.1.1",
     "husky": "^8.0.0",
     "lint-staged": "^13.2.1",

@@ -1,28 +1,28 @@
 "use strict";
-process.on("unhandledRejection", console.dir); // eslint-disable-line no-console
+process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
 
-// setup test framework
+//setup test framework
 const chai = require("chai");
 const { expect } = require("chai");
 chai.use(require("chai-as-promised"));
 
-// testee
+//testee
 const { sanityCheck } = require("../lib/util.js");
 
-describe("test for sanityCheck", () => {
+describe("test for sanityCheck", ()=>{
   const host = "testHostName";
   const defaultValues = {
     ControlPersist: 180,
     maxRetry: 3,
     retryDuration: 1000
   };
-  it("should throw error for empty host", () => {
+  it("should throw error for empty host", ()=>{
     expect(sanityCheck.bind(null, { host: "   ", user: "   ", port: 22 })).to.throw(/empty host is not allowed/);
   });
-  it("should throw error if host is not in argument object", () => {
+  it("should throw error if host is not in argument object", ()=>{
     expect(sanityCheck.bind(null, { user: "   ", port: 22 })).to.throw(/host is required/);
   });
-  it("should just remove empty string props", () => {
+  it("should just remove empty string props", ()=>{
     expect(sanityCheck({
       host,
       user: "   ",
@@ -33,7 +33,7 @@ describe("test for sanityCheck", () => {
       port: 22
     });
   });
-  it("should remove empty string member in sshOpt", () => {
+  it("should remove empty string member in sshOpt", ()=>{
     expect(sanityCheck({
       host,
       sshOpt: ["foo", "  ", "bar"],
@@ -47,7 +47,7 @@ describe("test for sanityCheck", () => {
       port: 33
     });
   });
-  it("should just change type if string value specified for number", () => {
+  it("should just change type if string value specified for number", ()=>{
     expect(sanityCheck({
       host,
       port: "11",
@@ -64,7 +64,7 @@ describe("test for sanityCheck", () => {
       retryDuration: 55
     });
   });
-  it("should remove out of range members", () => {
+  it("should remove out of range members", ()=>{
     expect(sanityCheck({
       host,
       ControlPersist: "-1",
@@ -75,7 +75,7 @@ describe("test for sanityCheck", () => {
       host
     });
   });
-  it("should just change type if string value specified for boolean member", () => {
+  it("should just change type if string value specified for boolean member", ()=>{
     expect(sanityCheck({
       host,
       noStrictHostKeyChecking: "true"
@@ -85,7 +85,7 @@ describe("test for sanityCheck", () => {
       noStrictHostKeyChecking: true
     });
   });
-  it("should just change type if number value specified for boolean member", () => {
+  it("should just change type if number value specified for boolean member", ()=>{
     expect(sanityCheck({
       host,
       noStrictHostKeyChecking: 0
@@ -95,11 +95,11 @@ describe("test for sanityCheck", () => {
       noStrictHostKeyChecking: false
     });
   });
-  it("shold keep addtional properties", () => {
+  it("shold keep addtional properties", ()=>{
     const testData = {
       host,
       hoge: 3,
-      foo: () => {}
+      foo: ()=>{}
     };
     expect(sanityCheck(testData)).to.deep.equal(testData);
   });
