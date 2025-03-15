@@ -21,7 +21,6 @@ jobs:
       TEST_USER: testuser
       TEST_PW: passw0rd
       TEST_PORT: 10022
-      DEBUG: 'ssh*'
     runs-on: ubuntu-latest
     strategy:
       matrix:
