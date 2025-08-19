@@ -1,13 +1,13 @@
-"use strict";
 process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
 
 //setup test framework
-const chai = require("chai");
-const { expect } = require("chai");
-chai.use(require("chai-as-promised"));
+import chai from "chai";
+import { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
+chai.use(chaiAsPromised);
 
 //testee
-const { sanityCheck } = require("../lib/util.js");
+import { sanityCheck } from "../lib/util.js";
 
 describe("test for sanityCheck", ()=>{
   const host = "testHostName";

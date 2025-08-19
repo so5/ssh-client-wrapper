@@ -1,4 +1,3 @@
-"use strict";
 import js from "@eslint/js";
 import globals from "globals";
 import stylistic from "@stylistic/eslint-plugin";
@@ -161,15 +160,11 @@ export default [
         ...globals.nodeBuiltin,
         ...globals.node,
       },
-      sourceType: "commonjs",
+      sourceType: "module",
     },
     rules: {
       ...styleRules,
       ...jsdocRules,
-      "node/exports-style": [
-        "error",
-        "module.exports",
-      ],
       "no-nested-ternary": "off",
       "no-param-reassign": "warn",
       "camelcase": [

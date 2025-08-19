@@ -1,8 +1,8 @@
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const util = require("util");
-const exec = util.promisify(require("node:child_process").exec);
+import fs from "fs-extra";
+import path from "path";
+import util from "util";
+import { exec as exec_ } from "node:child_process";
+const exec = util.promisify(exec_);
 
 /**
  * to enable debug log dynamically
@@ -18,18 +18,20 @@ process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
 Error.traceLimit = 100000;
 
 //setup test framework
-const chai = require("chai");
-const { expect } = require("chai");
-chai.use(require("chai-fs"));
-chai.use(require("chai-as-promised"));
+import chai from "chai";
+import { expect } from "chai";
+import chaiFs from "chai-fs";
+import chaiAsPromised from "chai-as-promised";
+chai.use(chaiFs);
+chai.use(chaiAsPromised);
 
 //testee
-const { checkRsyncVersion, send, recv } = require("../lib/rsyncExec.js");
+import { checkRsyncVersion, send, recv } from "../lib/rsyncExec.js";
 
 //test helpers
-const { sshExec, disconnect } = require("../lib/sshExec.js");
-const hostInfo = require("./testUtil/hostInfo.js");
-const {
+import { sshExec, disconnect } from "../lib/sshExec.js";
+import hostInfo from "./testUtil/hostInfo.js";
+import {
   clearLocalTestFiles,
   clearRemoteTestFiles,
   createLocalFiles,
@@ -40,7 +42,7 @@ const {
   remoteRoot,
   remoteEmptyDir,
   remoteFiles
-} = require("./testUtil/testFiles");
+} from "./testUtil/testFiles.js";
 
 const formatLsOutput = (array)=>{
   const rt = [];
