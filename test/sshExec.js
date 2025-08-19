@@ -1,7 +1,7 @@
 "use strict";
 const path = require("path");
 
-process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
+process.on("unhandledRejection", console.dir);  
 Error.traceLimit = 100000;
 
 //setup test framework
@@ -23,7 +23,7 @@ const { send } = require("../lib/rsyncExec.js");
 
 describe("test for ssh execution", function () {
   const rcfilePath = "/home/testuser/testrc";
-  this.timeout(65000);//eslint-disable-line no-invalid-this
+  this.timeout(65000); 
   beforeEach(async ()=>{
     sshout.reset();
     await clearRemoteTestFiles(hostInfo);

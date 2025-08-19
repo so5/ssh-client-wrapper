@@ -1,5 +1,5 @@
 "use strict";
-process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
+process.on("unhandledRejection", console.dir);  
 
 //setup test framework
 const chai = require("chai");

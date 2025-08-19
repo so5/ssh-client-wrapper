@@ -1,5 +1,5 @@
 "use strict";
-process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
+process.on("unhandledRejection", console.dir);  
 Error.traceLimit = 100000;
 
 //setup test framework
@@ -20,7 +20,7 @@ const disconnect = sinon.stub();
 const send = sinon.stub();
 const recv = sinon.stub();
 
-//eslint-disable-next-line no-underscore-dangle
+ 
 SshClientWrapper.__set__({
   sshExec, canConnect, disconnect, send, recv, expect
 });
@@ -29,11 +29,9 @@ describe("test for interface", ()=>{
   describe("test for constructor", ()=>{
     it("should throw error when instanciate with non-empty string host", ()=>{
       expect(()=>{
-        //eslint-disable-next-line no-new
         new SshClientWrapper({});
       }).to.throw("host is required");
       expect(()=>{
-        //eslint-disable-next-line no-new
         new SshClientWrapper({ host: "" });
       }).to.throw("empty host is not allowed");
     });
