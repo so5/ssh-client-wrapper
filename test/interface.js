@@ -2,7 +2,7 @@ process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
 
 //setup test framework
-import chai from "chai";
+import * as chai from "chai";
 import { expect } from "chai";
 import sinon from "sinon";
 import sinonChai from "sinon-chai";
