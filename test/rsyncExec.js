@@ -20,9 +20,7 @@ Error.traceLimit = 100000;
 //setup test framework
 import chai from "chai";
 import { expect } from "chai";
-import chaiFs from "chai-fs";
 import chaiAsPromised from "chai-as-promised";
-chai.use(chaiFs);
 chai.use(chaiAsPromised);
 
 //testee
