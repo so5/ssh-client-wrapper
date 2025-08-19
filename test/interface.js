@@ -1,4 +1,4 @@
-process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
+process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
 
 //setup test framework
@@ -33,11 +33,9 @@ describe("test for interface", ()=>{
   describe("test for constructor", ()=>{
     it("should throw error when instanciate with non-empty string host", ()=>{
       expect(()=>{
-        //eslint-disable-next-line no-new
         new SshClientWrapper({}, deps);
       }).to.throw("host is required");
       expect(()=>{
-        //eslint-disable-next-line no-new
         new SshClientWrapper({ host: "" }, deps);
       }).to.throw("empty host is not allowed");
     });

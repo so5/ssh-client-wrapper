@@ -1,4 +1,4 @@
-process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
+process.on("unhandledRejection", console.dir);
 
 //setup test framework
 import chai from "chai";

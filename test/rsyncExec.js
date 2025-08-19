@@ -14,7 +14,7 @@ const exec = util.promisify(exec_);
  *         debug.disable();
  */
 
-process.on("unhandledRejection", console.dir); //eslint-disable-line no-console
+process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
 
 //setup test framework
@@ -58,13 +58,13 @@ const formatLsOutput = (array)=>{
 describe("test checkRsyncVersion", async ()=>{
   const { major, minor, patch } = await checkRsyncVersion(1);
   const versionString = `${major}.${minor}.${patch}`;
-  console.log(`==== test with rsync version ${versionString} ====`); //eslint-disable-line no-console
+  console.log(`==== test with rsync version ${versionString} ====`);
   const { stdout } = await exec("rsync --version |grep 'version'");
   expect(stdout).to.match(new RegExp(versionString));
 });
 
 describe("test rsync exec", function () {
-  this.timeout(10000);//eslint-disable-line no-invalid-this
+  this.timeout(10000);
   const rt = [];
   const output = (data)=>{
     rt.push(data);
