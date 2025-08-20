@@ -1,5 +1,5 @@
-import globals from "globals";
 import js from "@eslint/js";
+import globals from "globals";
 import stylistic from "@stylistic/eslint-plugin";
 import jsdoc from "eslint-plugin-jsdoc";
 import eslintPluginChaiFriendly from "eslint-plugin-chai-friendly";

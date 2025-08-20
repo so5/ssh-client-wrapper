@@ -1,29 +1,33 @@
-"use strict";
-const path = require("path");
+import path from "path";
+import { fileURLToPath } from "url";
 
-process.on("unhandledRejection", console.dir);  
+process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
 
 //setup test framework
-const chai = require("chai");
-const { expect } = require("chai");
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-as-promised"));
+import * as chai from "chai";
+import { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiAsPromised from "chai-as-promised";
+chai.use(sinonChai);
+chai.use(chaiAsPromised);
 
 const sshout = sinon.stub();
 
 //testee
-const { sshExec, canConnect, disconnect } = require("../lib/sshExec.js");
+import { sshExec, canConnect, disconnect } from "../lib/sshExec.js";
 
 //test helpers
-const hostInfo = require("./testUtil/hostInfo.js");
-const { clearRemoteTestFiles, clearLocalTestFiles, nonExisting } = require("./testUtil/testFiles.js");
-const { send } = require("../lib/rsyncExec.js");
+import hostInfo from "./testUtil/hostInfo.js";
+import { clearRemoteTestFiles, clearLocalTestFiles, nonExisting } from "./testUtil/testFiles.js";
+import { send } from "../lib/rsyncExec.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe("test for ssh execution", function () {
   const rcfilePath = "/home/testuser/testrc";
-  this.timeout(65000); 
+  this.timeout(65000);
   beforeEach(async ()=>{
     sshout.reset();
     await clearRemoteTestFiles(hostInfo);

@@ -1,49 +1,53 @@
-"use strict";
-process.on("unhandledRejection", console.dir);  
+process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
 
 //setup test framework
-const chai = require("chai");
-const { expect } = require("chai");
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-as-promised"));
-
-const rewire = require("rewire");
+import * as chai from "chai";
+import { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiAsPromised from "chai-as-promised";
+chai.use(sinonChai);
+chai.use(chaiAsPromised);
 
 //testee
-const SshClientWrapper = rewire("../lib/index.js");
+import SshClientWrapper from "../lib/index.js";
 
 const sshExec = sinon.stub();
 const canConnect = sinon.stub();
 const disconnect = sinon.stub();
+const expectStub = sinon.stub();
 const send = sinon.stub();
 const recv = sinon.stub();
 
- 
-SshClientWrapper.__set__({
-  sshExec, canConnect, disconnect, send, recv, expect
-});
+const deps = {
+  sshExec,
+  canConnect,
+  disconnect,
+  expect: expectStub,
+  send,
+  recv
+};
 
 describe("test for interface", ()=>{
   describe("test for constructor", ()=>{
     it("should throw error when instanciate with non-empty string host", ()=>{
       expect(()=>{
-        new SshClientWrapper({});
+        new SshClientWrapper({}, deps);
       }).to.throw("host is required");
       expect(()=>{
-        new SshClientWrapper({ host: "" });
+        new SshClientWrapper({ host: "" }, deps);
       }).to.throw("empty host is not allowed");
     });
     it("should successfully instanciate only with host prop", ()=>{
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("exec");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("execAndGetOutput");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("ls");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("expect");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("send");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("recv");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("canConnect");
-      expect(new SshClientWrapper({ host: "hoge" })).to.have.property("disconnect");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("exec");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("execAndGetOutput");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("ls");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("expect");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("send");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("recv");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("canConnect");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("disconnect");
     });
   });
   describe("test for public method", ()=>{
@@ -56,12 +60,13 @@ describe("test for interface", ()=>{
     };
     const hostInfo = { ...hostInfoOrg, masterPty: null, rsyncVersion: null };
     beforeEach(()=>{
-      ssh = new SshClientWrapper(hostInfoOrg);
+      ssh = new SshClientWrapper(hostInfoOrg, deps);
       sshExec.reset();
       canConnect.reset();
       disconnect.reset();
       send.reset();
       recv.reset();
+      expectStub.reset();
     });
     describe("test for exec", ()=>{
       it("should call sshExec with cmd", ()=>{

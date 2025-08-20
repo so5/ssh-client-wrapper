@@ -1,8 +1,8 @@
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const util = require("util");
-const exec = util.promisify(require("node:child_process").exec);
+import fs from "fs-extra";
+import path from "path";
+import util from "util";
+import { exec as exec_ } from "node:child_process";
+const exec = util.promisify(exec_);
 
 /**
  * to enable debug log dynamically
@@ -14,22 +14,22 @@ const exec = util.promisify(require("node:child_process").exec);
  *         debug.disable();
  */
 
-process.on("unhandledRejection", console.dir);  
+process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
 
 //setup test framework
-const chai = require("chai");
-const { expect } = require("chai");
-chai.use(require("chai-fs"));
-chai.use(require("chai-as-promised"));
+import * as chai from "chai";
+import { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
+chai.use(chaiAsPromised);
 
 //testee
-const { checkRsyncVersion, send, recv } = require("../lib/rsyncExec.js");
+import { checkRsyncVersion, send, recv } from "../lib/rsyncExec.js";
 
 //test helpers
-const { sshExec, disconnect } = require("../lib/sshExec.js");
-const hostInfo = require("./testUtil/hostInfo.js");
-const {
+import { sshExec, disconnect } from "../lib/sshExec.js";
+import hostInfo from "./testUtil/hostInfo.js";
+import {
   clearLocalTestFiles,
   clearRemoteTestFiles,
   createLocalFiles,
@@ -40,7 +40,7 @@ const {
   remoteRoot,
   remoteEmptyDir,
   remoteFiles
-} = require("./testUtil/testFiles");
+} from "./testUtil/testFiles.js";
 
 const formatLsOutput = (array)=>{
   const rt = [];
@@ -56,13 +56,13 @@ const formatLsOutput = (array)=>{
 describe("test checkRsyncVersion", async ()=>{
   const { major, minor, patch } = await checkRsyncVersion(1);
   const versionString = `${major}.${minor}.${patch}`;
-  console.log(`==== test with rsync version ${versionString} ====`);  
+  console.log(`==== test with rsync version ${versionString} ====`);
   const { stdout } = await exec("rsync --version |grep 'version'");
   expect(stdout).to.match(new RegExp(versionString));
 });
 
 describe("test rsync exec", function () {
-  this.timeout(10000); 
+  this.timeout(10000);
   const rt = [];
   const output = (data)=>{
     rt.push(data);

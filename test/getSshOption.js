@@ -1,13 +1,13 @@
-"use strict";
-process.on("unhandledRejection", console.dir);  
+process.on("unhandledRejection", console.dir);
 
 //setup test framework
-const chai = require("chai");
-const { expect } = require("chai");
-chai.use(require("chai-as-promised"));
+import * as chai from "chai";
+import { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
+chai.use(chaiAsPromised);
 
 //testee
-const { getSshOption } = require("../lib/util.js");
+import { getSshOption } from "../lib/util.js";
 
 describe("test for getSshOption", ()=>{
   const defaultValues = {

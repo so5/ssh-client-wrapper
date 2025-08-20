@@ -1,8 +1,7 @@
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
+import fs from "fs-extra";
+import path from "path";
 
-const { sshExec } = require("../../lib/sshExec.js");
+import { sshExec } from "../../lib/sshExec.js";
 
 /*
  * test directory tree
@@ -50,7 +49,7 @@ const nonExisting = "ARSSH_nonExisting";
 /**
  *
  */
-async function createLocalFiles() {
+export async function createLocalFiles() {
   const localDir2 = path.join(localRoot, "hoge");
   const promises = [];
   await fs.mkdir(localRoot);
@@ -65,7 +64,7 @@ async function createLocalFiles() {
 /**
  *
  */
-async function clearLocalTestFiles() {
+export async function clearLocalTestFiles() {
   return fs.remove(localRoot);
 }
 
@@ -73,7 +72,7 @@ async function clearLocalTestFiles() {
  *
  * @param hostInfo
  */
-async function createRemoteFiles(hostInfo) {
+export async function createRemoteFiles(hostInfo) {
   //create remote files
   await sshExec(hostInfo, `mkdir -p ${remoteRoot}/hoge`);
   await sshExec(hostInfo, `mkdir -p ${remoteEmptyDir}`);
@@ -87,18 +86,16 @@ async function createRemoteFiles(hostInfo) {
  *
  * @param hostInfo
  */
-async function clearRemoteTestFiles(hostInfo) {
+export async function clearRemoteTestFiles(hostInfo) {
   return sshExec(hostInfo, `rm -fr ${remoteRoot}`);
 }
 
-module.exports.createLocalFiles = createLocalFiles;
-module.exports.createRemoteFiles = createRemoteFiles;
-module.exports.clearLocalTestFiles = clearLocalTestFiles;
-module.exports.clearRemoteTestFiles = clearRemoteTestFiles;
-module.exports.localRoot = localRoot;
-module.exports.localEmptyDir = localEmptyDir;
-module.exports.localFiles = localFiles;
-module.exports.nonExisting = nonExisting;
-module.exports.remoteRoot = remoteRoot;
-module.exports.remoteEmptyDir = remoteEmptyDir;
-module.exports.remoteFiles = remoteFiles;
+export {
+  localRoot,
+  localEmptyDir,
+  localFiles,
+  nonExisting,
+  remoteRoot,
+  remoteEmptyDir,
+  remoteFiles
+};
