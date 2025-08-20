@@ -39,7 +39,7 @@
     "ajv-keywords": "^5.1.0",
     "debug": "^4.4.1",
     "glob": "^11.0.3",
-    "node-pty": "^1.0.0"
+    "node-pty-prebuilt-multiarch": "^0.10.1-pre.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
