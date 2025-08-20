@@ -1,8 +1,8 @@
 name: report coverage data to code climate
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 jobs:
   test:
     uses: ./.github/workflows/run_test.yml
@@ -12,7 +12,7 @@ jobs:
     name: coverage report
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: code-coverage-report
