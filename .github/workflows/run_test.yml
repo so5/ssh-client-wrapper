@@ -1,11 +1,8 @@
 name: run UT
 on:
-  push:
-    tags-ignore:
-      - 'v*'
+  pull_request:
     branches:
-      - '*'
-      - '!main'
+      - main
   workflow_call:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
