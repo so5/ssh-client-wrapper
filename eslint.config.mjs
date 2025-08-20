@@ -2,37 +2,24 @@ import js from "@eslint/js";
 import globals from "globals";
 import stylistic from "@stylistic/eslint-plugin";
 import jsdoc from "eslint-plugin-jsdoc";
-import node from "eslint-plugin-node";
-import chaiFriendly from "eslint-plugin-chai-friendly";
-
-const jsdocRules = {
-  "jsdoc/require-jsdoc": ["warn", { enableFixer: false }],
-  "jsdoc/require-param": ["warn", { enableFixer: false }],
-  "jsdoc/require-param-description": "warn",
-  "jsdoc/require-param-name": "warn",
-  "jsdoc/require-param-type": "warn",
-  "jsdoc/require-hyphen-before-param-description": [
-    "warn",
-    "always",
-  ],
-  "jsdoc/require-returns": "warn",
-  "jsdoc/require-returns-check": "error",
-};
+import eslintPluginChaiFriendly from "eslint-plugin-chai-friendly";
+import eslintPluginChaiExpect from "eslint-plugin-chai-expect";
 
 const styleRules = {
+  "arrow-body-style": ["error", "always"],
   "@stylistic/arrow-spacing": [
     "error",
     {
       after: false,
-      before: false,
+      before: false
     }],
   "@stylistic/comma-dangle": [
     "error",
-    "never",
+    "never"
   ],
   "@stylistic/spaced-comment": [
     "error",
-    "never",
+    "never"
   ],
   "@stylistic/lines-around-comment": [
     "error",
@@ -41,32 +28,32 @@ const styleRules = {
       afterBlockComment: false,
       beforeLineComment: false,
       afterLineComment: false,
-      allowBlockStart: true,
-    },
+      allowBlockStart: true
+    }
   ],
   "@stylistic/lines-between-class-members": [
     "error",
     "always",
     {
-      exceptAfterSingleLine: true,
-    },
+      exceptAfterSingleLine: true
+    }
   ],
   "@stylistic/newline-per-chained-call": [
     "error",
     {
-      ignoreChainWithDepth: 2,
-    },
+      ignoreChainWithDepth: 2
+    }
   ],
   "@stylistic/padded-blocks": [
     "error",
-    "never",
+    "never"
   ],
   "@stylistic/brace-style": [
     "error",
     "1tbs",
     {
-      allowSingleLine: true,
-    },
+      allowSingleLine: true
+    }
   ],
   "@stylistic/padding-line-between-statements": [
     "error",
@@ -75,9 +62,9 @@ const styleRules = {
       prev: [
         "const",
         "let",
-        "var",
+        "var"
       ],
-      next: "*",
+      next: "*"
     },
     {
       blankLine: "always",
@@ -89,8 +76,8 @@ const styleRules = {
         "function",
         "switch",
         "try",
-        "while",
-      ],
+        "while"
+      ]
     },
     {
       blankLine: "any",
@@ -102,7 +89,7 @@ const styleRules = {
         "while",
         "do",
         "block-like",
-        "multiline-block-like",
+        "multiline-block-like"
       ],
       next: [
         "block-like",
@@ -111,91 +98,84 @@ const styleRules = {
         "multiline-block-like",
         "switch",
         "try",
-        "while",
-      ],
-    },
+        "while"
+      ]
+    }
   ],
+  "@stylistic/quotes": [
+    "error",
+    "double"
+  ],
+  "@stylistic/semi": [
+    "error",
+    "always"
+  ]
+};
+
+const jsdocRules = {
+  "jsdoc/require-jsdoc": ["warn", { enableFixer: false }],
+  "jsdoc/require-param": ["warn", { enableFixer: false }],
+  "jsdoc/require-param-description": "warn",
+  "jsdoc/require-param-name": "warn",
+  "jsdoc/require-param-type": "warn",
+  "jsdoc/require-hyphen-before-param-description": [
+    "warn",
+    "always"
+  ],
+  "jsdoc/require-returns": "warn",
+  "jsdoc/require-returns-check": "error"
 };
 
 export default [
+  // Global configuration
+  {
+    ignores: ["coverage-report.lcov", "node_modules/"]
+  },
   js.configs.recommended,
-  jsdoc.configs["flat/recommended"],
-  stylistic.configs["disable-legacy"],
-  stylistic.configs.customize({
-    indent: 2,
-    quotes: "double",
-    semi: true,
-    arrowParens: true,
-  }),
   {
-    ignores: ["node_modules/"],
-  },
-  {
-    files: ["test/**/*.js"],
     plugins: {
-      chaiFriendly,
+      "@stylistic": stylistic
+    }
+  },
+  // Lib configuration
+  {
+    files: ["lib/**/*.js"],
+    plugins: {
+      jsdoc
     },
     languageOptions: {
-      globals: {
-        ...globals.nodeBuiltin,
-        ...globals.node,
-        it: "readonly",
-        describe: "readonly",
-        before: "readonly",
-        after: "readonly",
-        beforeEach: "readonly",
-        afterEach: "readonly",
-      },
-    },
-  },
-  {
-    files: ["**/*.js"],
-    plugins: {
-      node,
-      "@stylistic": stylistic,
-      jsdoc,
-    },
-    languageOptions: {
-      globals: {
-        ...globals.nodeBuiltin,
-        ...globals.node,
-      },
+      ecmaVersion: "latest",
       sourceType: "module",
+      globals: {
+        ...globals.es2021,
+        ...globals.node
+      }
     },
     rules: {
       ...styleRules,
-      ...jsdocRules,
-      "no-nested-ternary": "off",
-      "no-param-reassign": "warn",
-      "camelcase": [
-        "error",
-        {
-          properties: "never",
-        },
-      ],
-      "eqeqeq": [
-        "error",
-        "always",
-        {
-          null: "ignore",
-        },
-      ],
-      "func-style": [
-        "error",
-        "declaration",
-        {
-          allowArrowFunctions: true,
-        },
-      ],
-      "no-use-before-define": [
-        "error",
-        {
-          functions: false,
-        },
-      ],
-      "no-warning-comments": "warn",
-      "require-unicode-regexp": "off",
-
-    },
+      ...jsdocRules
+    }
   },
+  // Test configuration
+  {
+    files: ["test/**/*.js"],
+    plugins: {
+      "chai-friendly": eslintPluginChaiFriendly,
+      "chai-expect": eslintPluginChaiExpect
+    },
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.es2021,
+        ...globals.node,
+        ...globals.mocha
+      }
+    },
+    rules: {
+      ...styleRules,
+      "no-unused-expressions": "off",
+      "chai-friendly/no-unused-expressions": "error"
+    }
+  }
 ];
