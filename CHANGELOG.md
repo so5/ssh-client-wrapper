@@ -1,3 +1,10 @@
+## [2.13.1](https://github.com/so5/ssh-client-wrapper/compare/v2.13.0...v2.13.1) (2025-08-20)
+
+
+### Bug Fixes
+
+* Update Code Climate workflow trigger ([7cf0a93](https://github.com/so5/ssh-client-wrapper/commit/7cf0a93913ceef762c267cb3a947c176479ce068))
+
 # [2.13.0](https://github.com/so5/ssh-client-wrapper/compare/v2.12.4...v2.13.0) (2025-08-20)
 
 
