@@ -1,3 +1,10 @@
+## [2.13.2](https://github.com/so5/ssh-client-wrapper/compare/v2.13.1...v2.13.2) (2025-11-04)
+
+
+### Bug Fixes
+
+* upgrade debug from 4.4.1 to 4.4.3 ([787706c](https://github.com/so5/ssh-client-wrapper/commit/787706ce2ee5f1144e1d5ccb2e11b06c498df0dd))
+
 ## [2.13.1](https://github.com/so5/ssh-client-wrapper/compare/v2.13.0...v2.13.1) (2025-08-20)
 
 
