@@ -1,3 +1,10 @@
+# [2.14.0](https://github.com/so5/ssh-client-wrapper/compare/v2.13.2...v2.14.0) (2025-11-06)
+
+
+### Features
+
+* Add TypeScript definitions and .npmignore ([#28](https://github.com/so5/ssh-client-wrapper/issues/28)) ([c65a9d0](https://github.com/so5/ssh-client-wrapper/commit/c65a9d04c3737614a488d6f4b12fe5f9a72da62d))
+
 ## [2.13.2](https://github.com/so5/ssh-client-wrapper/compare/v2.13.1...v2.13.2) (2025-11-04)
 
 
