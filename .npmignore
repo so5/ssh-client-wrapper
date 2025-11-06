@@ -1,0 +1,16 @@
+.github
+.husky
+test
+.dockerignore
+.gitignore
+.releaserc.json
+CHANGELOG.md
+Dockerfile
+Dockerfile-bullseye
+Dockerfile-buster
+compose.yml
+eslint.config.mjs
+run_test_all.sh
+run_test_local.sh
+coverage
+.nyc_output
