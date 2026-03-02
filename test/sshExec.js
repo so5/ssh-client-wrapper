@@ -122,6 +122,14 @@ describe("test for ssh execution", function () {
     });
     it("should be rejected if password is wrong", async ()=>{
       hostInfo2.password = "xxxx";
+      //Remove keyFile and disable all key-based auth to test password-only
+      delete hostInfo2.keyFile;
+      //Add SSH options to disable agent forwarding and pubkey auth
+      hostInfo2.sshOpt = [
+        "-o", "IdentitiesOnly=yes",
+        "-o", "PubkeyAuthentication=no",
+        "-o", "PreferredAuthentications=password"
+      ];
       return expect(canConnect(hostInfo2, 2)).to.be.rejected;
     });
     it("should be rejected if host does not exist", async ()=>{
