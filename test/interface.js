@@ -19,6 +19,7 @@ const disconnect = sinon.stub();
 const expectStub = sinon.stub();
 const send = sinon.stub();
 const recv = sinon.stub();
+const remoteToRemoteCopy = sinon.stub();
 
 const deps = {
   sshExec,
@@ -26,7 +27,8 @@ const deps = {
   disconnect,
   expect: expectStub,
   send,
-  recv
+  recv,
+  remoteToRemoteCopy
 };
 
 describe("test for interface", ()=>{
@@ -46,6 +48,7 @@ describe("test for interface", ()=>{
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("expect");
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("send");
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("recv");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("remoteToRemoteCopy");
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("canConnect");
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("disconnect");
     });
@@ -66,6 +69,7 @@ describe("test for interface", ()=>{
       disconnect.reset();
       send.reset();
       recv.reset();
+      remoteToRemoteCopy.reset();
       expectStub.reset();
     });
     describe("test for exec", ()=>{
@@ -176,6 +180,58 @@ describe("test for interface", ()=>{
       });
       it("should be rejected if opt is not array of string", ()=>{
         return expect(ssh.recv(["src"], "dst", [null])).to.be.rejectedWith("opt must be array of string");
+      });
+    });
+    describe("test for remoteToRemoteCopy", ()=>{
+      it("should call remoteToRemoteCopy with src, dstHostInfo and dst", ()=>{
+        const dstHostInfo = { host: "dst-host", user: "dst-user" };
+        ssh.remoteToRemoteCopy(["src"], dstHostInfo, "dst");
+        expect(remoteToRemoteCopy).to.be.calledWith(hostInfo, ["src"], dstHostInfo, "dst", [], 0);
+      });
+      it("should call remoteToRemoteCopy with src, dstHostInfo, dst and opt", ()=>{
+        const dstHostInfo = { host: "dst-host", user: "dst-user" };
+        ssh.remoteToRemoteCopy(["src"], dstHostInfo, "dst", ["--dry-run", "--delete"]);
+        expect(remoteToRemoteCopy).to.be.calledWith(hostInfo, ["src"], dstHostInfo, "dst", ["--dry-run", "--delete"], 0);
+      });
+      it("should call remoteToRemoteCopy with src, dstHostInfo, dst, opt, and timeout", ()=>{
+        const dstHostInfo = { host: "dst-host", user: "dst-user" };
+        ssh.remoteToRemoteCopy(["src"], dstHostInfo, "dst", ["--dry-run", "--delete"], 10);
+        expect(remoteToRemoteCopy).to.be.calledWith(hostInfo, ["src"], dstHostInfo, "dst", ["--dry-run", "--delete"], 10);
+      });
+      it("should be rejected if src is not array of string", ()=>{
+        const dstHostInfo = { host: "dst-host" };
+        return expect(ssh.remoteToRemoteCopy(1, dstHostInfo, "dst")).to.be.rejectedWith("src must be array of string");
+      });
+      it("should be rejected if src has only empty string element", ()=>{
+        const dstHostInfo = { host: "dst-host" };
+        return expect(ssh.remoteToRemoteCopy(["", ""], dstHostInfo, "dst")).to.be.rejectedWith("src must contain non-empty string");
+      });
+      it("should be rejected if src has only empty string element", ()=>{
+        const dstHostInfo = { host: "dst-host" };
+        return expect(ssh.remoteToRemoteCopy([""], dstHostInfo, "dst")).to.be.rejectedWith("src must contain non-empty string");
+      });
+      it("should be called if src includes empty string ", ()=>{
+        const dstHostInfo = { host: "dst-host", user: "dst-user" };
+        ssh.remoteToRemoteCopy(["src", ""], dstHostInfo, "dst");
+        expect(remoteToRemoteCopy).to.be.calledWith(hostInfo, ["src", ""], dstHostInfo, "dst", [], 0);
+      });
+      it("should be rejected if dstHostInfo is not object", ()=>{
+        return expect(ssh.remoteToRemoteCopy(["src"], "not-object", "dst")).to.be.rejectedWith("dstHostInfo must be object with host property");
+      });
+      it("should be rejected if dstHostInfo does not have host property", ()=>{
+        return expect(ssh.remoteToRemoteCopy(["src"], { user: "foo" }, "dst")).to.be.rejectedWith("dstHostInfo must be object with host property");
+      });
+      it("should be rejected if dst is not string", ()=>{
+        const dstHostInfo = { host: "dst-host" };
+        return expect(ssh.remoteToRemoteCopy(["src"], dstHostInfo, 0)).to.be.rejectedWith("dst must be non-empty string");
+      });
+      it("should be rejected if dst is empty string", ()=>{
+        const dstHostInfo = { host: "dst-host" };
+        return expect(ssh.remoteToRemoteCopy(["src"], dstHostInfo, "")).to.be.rejectedWith("dst must be non-empty string");
+      });
+      it("should be rejected if opt is not array of string", ()=>{
+        const dstHostInfo = { host: "dst-host" };
+        return expect(ssh.remoteToRemoteCopy(["src"], dstHostInfo, "dst", [null])).to.be.rejectedWith("opt must be array of string");
       });
     });
   });

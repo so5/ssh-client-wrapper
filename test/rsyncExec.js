@@ -24,11 +24,11 @@ import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);
 
 //testee
-import { checkRsyncVersion, send, recv } from "../lib/rsyncExec.js";
+import { checkRsyncVersion, send, recv, remoteToRemoteCopy } from "../lib/rsyncExec.js";
 
 //test helpers
 import { sshExec, disconnect } from "../lib/sshExec.js";
-import hostInfo from "./testUtil/hostInfo.js";
+import hostInfo, { hostInfo2, hostInfo2Verify } from "./testUtil/hostInfo.js";
 import {
   clearLocalTestFiles,
   clearRemoteTestFiles,
@@ -400,6 +400,144 @@ describe("test rsync exec", function () {
     describe("error case", ()=>{
       it("should not send directory to existing file path", ()=>{
         return expect(recv(hostInfo, [remoteRoot], localFiles[0], [], 0)).to.be.rejected;
+      });
+    });
+  });
+  describe("#remoteToRemoteCopy", async ()=>{
+    //Use second host as destination - requires TEST_HOST2 to be set
+    const dstHostInfo = {
+      get host() { return hostInfo2.host; },
+      get user() { return hostInfo2.user; },
+      get port() { return hostInfo2.port; },
+      noStrictHostKeyChecking: true
+    };
+    const dstRemoteRoot = "ssh_testRemoteDstDir";
+    const dstRemoteEmptyDir = `${dstRemoteRoot}/emptyDir`;
+
+    beforeEach(async function() {
+      //Create destination directories on second host
+      await sshExec(hostInfo2Verify, `rm -rf ${dstRemoteRoot} && mkdir -p ${dstRemoteEmptyDir}`, 0);
+    });
+
+    afterEach(async ()=>{
+      //Clean up destination directories on second host
+      if (!process.env.TEST_KEEP_FILES) {
+        await sshExec(hostInfo2Verify, `rm -rf ${dstRemoteRoot}`, 0);
+      }
+    });
+
+    after(async ()=>{
+      //Disconnect from second host
+      await disconnect(hostInfo2Verify);
+    });
+
+    describe("copy single file", ()=>{
+      it("should copy relative src file to relative dst dir", async ()=>{
+        await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstHostInfo, dstRemoteEmptyDir, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+
+      it("should copy absolute src file to absolute dst dir", async ()=>{
+        await remoteToRemoteCopy(hostInfo, [path.posix.join(remoteHome, remoteFiles[0])], dstHostInfo, path.posix.join(remoteHome, dstRemoteEmptyDir), [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+
+      it("should copy file to a new filename", async ()=>{
+        const targetFile = path.posix.join(dstRemoteEmptyDir, "copied_file");
+        await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstHostInfo, targetFile, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["copied_file"]);
+      });
+
+      it("should copy multiple files", async ()=>{
+        await remoteToRemoteCopy(hostInfo, [remoteFiles[0], remoteFiles[1], remoteFiles[2]], dstHostInfo, `${dstRemoteEmptyDir}/`, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz"]);
+      });
+    });
+
+    describe("copy directory tree", ()=>{
+      it("should copy directory and its contents", async ()=>{
+        await remoteToRemoteCopy(hostInfo, [remoteRoot], dstHostInfo, `${dstRemoteEmptyDir}/`, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, remoteRoot)}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
+
+        rt.splice(0, rt.length);
+        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, remoteRoot, "hoge")}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
+      });
+
+      it("should copy with trailing slash (contents only)", async ()=>{
+        await remoteToRemoteCopy(hostInfo, [`${remoteRoot}/`], dstHostInfo, `${dstRemoteEmptyDir}/`, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
+
+        rt.splice(0, rt.length);
+        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, "hoge")}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
+      });
+
+      it("should copy with exclude filter", async ()=>{
+        await remoteToRemoteCopy(hostInfo, [remoteRoot], dstHostInfo, `${dstRemoteEmptyDir}/`, ["--exclude=ba*", "--exclude=hoge"], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, remoteRoot)}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo", "huga"]);
+      });
+    });
+
+    describe("automatic directory creation", ()=>{
+      it("should create nested directories for file destination", async ()=>{
+        const nestedPath = path.posix.join(dstRemoteRoot, "new/nested/dir/file.txt");
+        await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstHostInfo, nestedPath, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteRoot, "new/nested/dir")}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["file.txt"]);
+      });
+
+      it("should create directory for directory destination with trailing slash", async ()=>{
+        const nestedPath = path.posix.join(dstRemoteRoot, "new/nested/dir/");
+        await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstHostInfo, nestedPath, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${nestedPath}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+    });
+
+    describe("with different users", ()=>{
+      it("should work when dstHostInfo has different user specified", async ()=>{
+        const dstWithUser = {
+          host: hostInfo2.host,
+          user: hostInfo2.user || "testuser",
+          port: hostInfo2.port,
+          noStrictHostKeyChecking: true
+        };
+        await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstWithUser, `${dstRemoteEmptyDir}/`, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+    });
+
+    describe("with custom port", ()=>{
+      it("should work when dstHostInfo has custom port", async ()=>{
+        const dstWithPort = {
+          host: hostInfo2.host,
+          user: hostInfo2.user,
+          port: hostInfo2.port || 22,
+          noStrictHostKeyChecking: true
+        };
+        await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstWithPort, `${dstRemoteEmptyDir}/`, [], 0);
+
+        await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
       });
     });
   });

@@ -96,6 +96,40 @@ Downloads files or directories from the remote host using `rsync`.
 *   `dst` (string): The local destination path.
 *   Returns: `Promise<void>`
 
+### `.remoteToRemoteCopy(src, dstHostInfo, dst, [opt], [timeout])`
+Copies files or directories directly from this remote host to another remote host using `rsync` with SSH agent forwarding.
+
+*   `src` (string[]): An array of file or directory paths on this (source) remote host.
+*   `dstHostInfo` (Object): Destination host information (requires `host` property; optionally `user`, `port`, `noStrictHostKeyChecking`).
+*   `dst` (string): Destination path on the destination remote host.
+*   `opt` (string[], optional): Additional options for rsync (e.g., `["--exclude=*.log"]`).
+*   `timeout` (number, optional): Timeout in seconds.
+*   Returns: `Promise<void>`
+
+**Note:** This method requires SSH agent forwarding to be enabled. Your SSH key must be loaded in the SSH agent on localhost, and the connection to the source host must forward the agent. No password or keyFile is needed for the source → destination connection as it uses the forwarded SSH agent.
+
+**Example:**
+```javascript
+const srcHost = new SshClientWrapper({
+  host: 'source.server.com',
+  user: 'user1',
+  keyFile: '/path/to/key'
+});
+
+const dstHostInfo = {
+  host: 'destination.server.com',
+  user: 'user2'
+};
+
+// Copy files directly from source to destination
+await srcHost.remoteToRemoteCopy(
+  ['/remote/path/file.txt', '/remote/path/dir/'],
+  dstHostInfo,
+  '/destination/path/',
+  ['--exclude=*.tmp']
+);
+```
+
 ### `.canConnect([timeout])`
 Checks if a connection to the remote host can be established.
 

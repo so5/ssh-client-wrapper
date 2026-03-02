@@ -4,6 +4,21 @@ services:
     ports:
       - "4100:22"
     container_name: testbed
+    # Enable SSH agent forwarding in the testbed
+    volumes:
+      - ssh-agent:/ssh-agent
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent/socket
+  testbed2:
+    image: naoso5/test-sshd
+    ports:
+      - "4101:22"
+    container_name: testbed2
+    # Enable SSH agent forwarding in the testbed2
+    volumes:
+      - ssh-agent:/ssh-agent
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent/socket
   tester:
     build:
       context: .
@@ -12,7 +27,10 @@ services:
       TEST_USER: testuser
       TEST_PW: passw0rd
       TEST_HOST: testbed
+      SSH_AUTH_SOCK: /ssh-agent/socket
     working_dir: /work/ssh-client-wrapper
+    volumes:
+      - ssh-agent:/ssh-agent
     command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run mocha"
   tester-bullseye:
     build:
@@ -22,7 +40,10 @@ services:
       TEST_USER: testuser
       TEST_PW: passw0rd
       TEST_HOST: testbed
+      SSH_AUTH_SOCK: /ssh-agent/socket
     working_dir: /work/ssh-client-wrapper
+    volumes:
+      - ssh-agent:/ssh-agent
     command: bash -c "mkdir /root/.ssh 2>/dev/null;  npm run mocha"
   tester-buster:
     build:
@@ -32,5 +53,11 @@ services:
       TEST_USER: testuser
       TEST_PW: passw0rd
       TEST_HOST: testbed
+      SSH_AUTH_SOCK: /ssh-agent/socket
     working_dir: /work/ssh-client-wrapper
+    volumes:
+      - ssh-agent:/ssh-agent
     command: bash -c "mkdir /root/.ssh 2>/dev/null;  npm run mocha"
+
+volumes:
+  ssh-agent:
