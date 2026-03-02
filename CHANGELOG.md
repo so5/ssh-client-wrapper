@@ -1,3 +1,16 @@
+# [2.15.0](https://github.com/so5/ssh-client-wrapper/compare/v2.14.0...v2.15.0) (2026-03-02)
+
+
+### Bug Fixes
+
+* package.json & package-lock.json to reduce vulnerabilities ([#31](https://github.com/so5/ssh-client-wrapper/issues/31)) ([2bbcc65](https://github.com/so5/ssh-client-wrapper/commit/2bbcc654e64edd3711ec0b43eb2eb9c7891632bf))
+
+
+### Features
+
+* enable remoteToRemoteCopy tests in GitHub Actions ([ae24386](https://github.com/so5/ssh-client-wrapper/commit/ae24386d823789f6a5acf352dcbac3d54f1aa6e7))
+* remove keyFile prop before wrong password test ([b508b84](https://github.com/so5/ssh-client-wrapper/commit/b508b84edd7f6250f4e12b71190bfc56576eca81))
+
 # [2.14.0](https://github.com/so5/ssh-client-wrapper/compare/v2.13.2...v2.14.0) (2025-11-06)
 
 
