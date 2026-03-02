@@ -117,3 +117,6 @@ Session.vim
 *~
 # Auto-generated tag files
 tags
+
+# Test SSH keys
+.test-ssh-keys/

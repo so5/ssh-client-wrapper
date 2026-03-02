@@ -14,10 +14,19 @@ jobs:
         image: naoso5/test-sshd
         ports:
           - 10022:22
+      testbed2:
+        image: naoso5/test-sshd
+        ports:
+          - 10023:22
     env:
       TEST_USER: testuser
       TEST_PW: passw0rd
       TEST_PORT: 10022
+      TEST_HOST2: testbed2
+      TEST_HOST2_VERIFY: localhost
+      TEST_USER2: testuser
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 10023
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -28,8 +37,41 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Setup SSH keys for testing
+        run: |
+          mkdir -p .test-ssh-keys
+          ssh-keygen -t rsa -b 2048 -f .test-ssh-keys/id_rsa -N "" -C "github-test-key"
+          eval "$(ssh-agent -s)"
+          ssh-add .test-ssh-keys/id_rsa
+          # Remove old host keys
+          ssh-keygen -R '[localhost]:10022' 2>/dev/null || true
+          ssh-keygen -R '[localhost]:10023' 2>/dev/null || true
+      - name: Wait for SSH services
+        run: |
+          timeout 60 bash -c 'until nc -z localhost 10022; do sleep 1; done'
+          timeout 60 bash -c 'until nc -z localhost 10023; do sleep 1; done'
+      - name: Install SSH keys to containers
+        run: |
+          # Install to testbed (port 10022)
+          sshpass -p "$TEST_PW" ssh-copy-id -o StrictHostKeyChecking=no -p 10022 -i .test-ssh-keys/id_rsa.pub testuser@localhost || \
+          sshpass -p "$TEST_PW" ssh -o StrictHostKeyChecking=no -p 10022 testuser@localhost "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys" < .test-ssh-keys/id_rsa.pub
+          
+          # Install to testbed2 (port 10023)
+          sshpass -p "$TEST_PW" ssh-copy-id -o StrictHostKeyChecking=no -p 10023 -i .test-ssh-keys/id_rsa.pub testuser@localhost || \
+          sshpass -p "$TEST_PW" ssh -o StrictHostKeyChecking=no -p 10023 testuser@localhost "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys" < .test-ssh-keys/id_rsa.pub
+      - name: Verify SSH connections
+        run: |
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa -p 10022 testuser@localhost "echo 'testbed OK'"
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa -p 10023 testuser@localhost "echo 'testbed2 OK'"
       - run: npm ci
-      - run: npm run test
+      - name: Run tests with SSH agent
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add .test-ssh-keys/id_rsa
+          export TEST_KEYFILE="$(pwd)/.test-ssh-keys/id_rsa"
+          npm run test
+        env:
+          TEST_KEYFILE: ${{ github.workspace }}/.test-ssh-keys/id_rsa
       - run: npm run coverage
         if: matrix.node-version == '22.x'
       - uses: actions/upload-artifact@v4
