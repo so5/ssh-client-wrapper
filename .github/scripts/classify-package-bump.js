@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * Classify the semver bump size of a Snyk dependency-update PR.
- * Usage: node classify-snyk-bump.js <base-package.json> <head-package.json> [pr-title]
+ * Classify the semver bump size of a dependency-update PR from its package.json diff.
+ * Usage: node classify-package-bump.js <base-package.json> <head-package.json> [pr-title]
  * Prints "bump=<major|minor|patch|unknown>" to stdout.
  *
- * Snyk has no official metadata API (unlike dependabot/fetch-metadata), and its PR
- * title format is an org-configurable template, so title-parsing alone is unreliable.
+ * Used for two cases:
+ * - Snyk PRs: Snyk has no official metadata API (unlike dependabot/fetch-metadata),
+ *   and its PR title format is an org-configurable template, so title-parsing alone
+ *   is unreliable.
+ * - Dependabot PRs where dependabot/fetch-metadata's update-type output comes back
+ *   null despite the PR being a real version bump (observed on grouped PRs bundling
+ *   multiple packages) - used as a fallback there, not the primary source.
+ *
  * Primary method: diff dependency version fields between base and head package.json.
  * Fallback: parse "from X to Y" out of the PR title (covers lockfile-only transitive
  * bumps not reflected in package.json). "Snyk Fix" PRs carry no version info at all

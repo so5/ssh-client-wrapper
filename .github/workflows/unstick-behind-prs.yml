@@ -1,0 +1,33 @@
+name: Unstick behind bot PRs
+
+# Auto-merge waits for a PR to no longer be BEHIND the base branch, but
+# nothing proactively updates it in every case: Dependabot only pushes a
+# new commit via `@dependabot rebase` when there's an actual conflict, so
+# a PR that falls behind purely because a sibling bot PR merged first (and
+# advanced the base branch) can get stuck indefinitely with no PR event to
+# trigger dependency-pr-automerge.yml's own update-branch step. Run this
+# independently of PR events to catch and fix that case.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  unstick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update behind bot PRs with auto-merge enabled
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr list --repo "${{ github.repository }}" --state open \
+            --json number,author,autoMergeRequest,mergeStateStatus \
+            --jq '.[] | select(.autoMergeRequest != null) | select(.mergeStateStatus == "BEHIND") | select(.author.login | IN("dependabot[bot]", "app/dependabot", "snyk-bot", "app/snyk-bot")) | .number' \
+          | while read -r num; do
+              echo "PR #$num is behind with auto-merge enabled - requesting branch update"
+              gh api --method PUT "repos/${{ github.repository }}/pulls/$num/update-branch" || true
+            done
