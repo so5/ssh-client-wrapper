@@ -26,7 +26,7 @@ jobs:
         run: |
           gh pr list --repo "${{ github.repository }}" --state open \
             --json number,author,autoMergeRequest,mergeStateStatus \
-            --jq '.[] | select(.autoMergeRequest != null) | select(.mergeStateStatus == "BEHIND") | select(.author.login == "dependabot[bot]" or .author.login == "snyk-bot") | .number' \
+            --jq '.[] | select(.autoMergeRequest != null) | select(.mergeStateStatus == "BEHIND") | select(.author.login | IN("dependabot[bot]", "app/dependabot", "snyk-bot", "app/snyk-bot")) | .number' \
           | while read -r num; do
               echo "PR #$num is behind with auto-merge enabled - requesting branch update"
               gh api --method PUT "repos/${{ github.repository }}/pulls/$num/update-branch" || true
