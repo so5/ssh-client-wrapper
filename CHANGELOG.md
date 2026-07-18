@@ -1,3 +1,17 @@
+# [2.16.0](https://github.com/so5/ssh-client-wrapper/compare/v2.15.0...v2.16.0) (2026-07-18)
+
+
+### Bug Fixes
+
+* force single @semantic-release/npm version via overrides ([957f3a2](https://github.com/so5/ssh-client-wrapper/commit/957f3a2cd0fe5288f1c6d92c67ee1ba3864d91a7))
+* pin npm upgrade to v11 in release workflow ([3d1e186](https://github.com/so5/ssh-client-wrapper/commit/3d1e18625d7f747164372548b9fe34a976e631e8))
+* run semantic-release directly instead of via cycjimmy action ([3a14e44](https://github.com/so5/ssh-client-wrapper/commit/3a14e4406247937043eefe3e65736b29e77ea82b))
+
+
+### Features
+
+* make rsync retryable exit codes configurable for send/recv ([427d503](https://github.com/so5/ssh-client-wrapper/commit/427d503d936fb7d360c1e46acd99a29a6c6ec728))
+
 # [2.15.0](https://github.com/so5/ssh-client-wrapper/compare/v2.14.0...v2.15.0) (2026-03-02)
 
 
