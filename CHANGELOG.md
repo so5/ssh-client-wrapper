@@ -1,3 +1,21 @@
+# [2.17.0](https://github.com/so5/ssh-client-wrapper/compare/v2.16.0...v2.17.0) (2026-07-18)
+
+
+### Bug Fixes
+
+* fall back to package.json diff when dependabot update-type is null ([7f4cb14](https://github.com/so5/ssh-client-wrapper/commit/7f4cb14845d5f318c160e39d53be8b33b0989288))
+* fall back to package.json diff when dependabot update-type is null ([632b4ec](https://github.com/so5/ssh-client-wrapper/commit/632b4ec9363564d246d7912a460812e4e5641d7a))
+* match dependabot/snyk bot logins as reported by gh pr list --json ([b3555bb](https://github.com/so5/ssh-client-wrapper/commit/b3555bbbc78d8356d36688f05fd2e6f3f9055122))
+* proactively update PR branch before enabling auto-merge ([a75be03](https://github.com/so5/ssh-client-wrapper/commit/a75be032e1929cc01fc02ed891650862e4eaef47))
+* use admin PAT for release checkout so branch protection doesn't block it ([a8a5c5e](https://github.com/so5/ssh-client-wrapper/commit/a8a5c5e29b5ed31150722f64600ec6d810d93527))
+
+
+### Features
+
+* auto-approve and auto-merge patch/minor bot dependency PRs ([2c35c94](https://github.com/so5/ssh-client-wrapper/commit/2c35c94c0158591bc2c36395a68933de292874f7))
+* include package/version details in Slack major-update notice ([e02df44](https://github.com/so5/ssh-client-wrapper/commit/e02df4404538435badbf828c343f8d275615afda))
+* periodically unstick behind bot PRs with auto-merge enabled ([bdd055a](https://github.com/so5/ssh-client-wrapper/commit/bdd055a5be8f7ff47768477c675aeceae8f33640))
+
 # [2.16.0](https://github.com/so5/ssh-client-wrapper/compare/v2.15.0...v2.16.0) (2026-07-18)
 
 
