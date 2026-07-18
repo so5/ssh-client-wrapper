@@ -89,6 +89,17 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           review-message: "Auto-approved: ${{ needs.classify.outputs.source }} ${{ needs.classify.outputs.bump }} update"
 
+      - name: Update PR branch if behind
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Best-effort: with required-status-checks branch protection, if a
+          # sibling bot PR merges first and advances the base branch, this PR
+          # falls behind and auto-merge would otherwise wait indefinitely for
+          # someone to update it. Proactively request the update ourselves.
+          # 422 (already up to date / nothing to do) is fine, ignore it.
+          gh api --method PUT "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/update-branch" || true
+
       - name: Enable GitHub native auto-merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
