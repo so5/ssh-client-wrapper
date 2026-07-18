@@ -46,18 +46,20 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Determine Snyk semver bump
-        id: snyk-diff
-        if: github.event.pull_request.user.login == 'snyk-bot'
+      - name: Determine semver bump from package.json diff
+        id: pkgjson-diff
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
+          # Always runs, for both bots: primary classification method for Snyk,
+          # and fallback for Dependabot when fetch-metadata's update-type comes
+          # back null (observed on grouped PRs bundling multiple packages).
           gh api "repos/${{ github.repository }}/contents/package.json?ref=$BASE_SHA" --jq '.content' | base64 -d > /tmp/base-package.json
           gh api "repos/${{ github.repository }}/contents/package.json?ref=$HEAD_SHA" --jq '.content' | base64 -d > /tmp/head-package.json
-          node .github/scripts/classify-snyk-bump.js /tmp/base-package.json /tmp/head-package.json "$PR_TITLE" >> "$GITHUB_OUTPUT"
+          node .github/scripts/classify-package-bump.js /tmp/base-package.json /tmp/head-package.json "$PR_TITLE" >> "$GITHUB_OUTPUT"
 
       - name: Combine into single output
         id: decide
@@ -67,14 +69,18 @@ jobs:
               version-update:semver-patch) BUMP="patch" ;;
               version-update:semver-minor) BUMP="minor" ;;
               version-update:semver-major) BUMP="major" ;;
-              *) BUMP="unknown" ;;
+              *) BUMP="" ;;
             esac
+            if [ -z "$BUMP" ]; then
+              echo "::notice::dependabot/fetch-metadata gave no usable update-type, falling back to package.json diff"
+              BUMP="${{ steps.pkgjson-diff.outputs.bump }}"
+            fi
             SOURCE="dependabot"
           else
-            BUMP="${{ steps.snyk-diff.outputs.bump }}"
-            [ -z "$BUMP" ] && BUMP="unknown"
+            BUMP="${{ steps.pkgjson-diff.outputs.bump }}"
             SOURCE="snyk"
           fi
+          [ -z "$BUMP" ] && BUMP="unknown"
           echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
           echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
 
