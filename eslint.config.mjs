@@ -129,7 +129,7 @@ const jsdocRules = {
 export default [
   // Global configuration
   {
-    ignores: ["coverage-report.lcov", "node_modules/"]
+    ignores: ["coverage-report.lcov", "node_modules/", ".github/"]
   },
   js.configs.recommended,
   {
