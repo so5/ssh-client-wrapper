@@ -18,7 +18,15 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
+      # Checkout with an admin PAT (not the default GITHUB_TOKEN) so that
+      # @semantic-release/git's push of the version-bump commit is exempt
+      # from branch protection's required status checks, the same way a
+      # manual admin push is - a fresh direct-pushed commit has no status
+      # checks recorded against it yet and would otherwise be rejected
+      # with GH006: Protected branch update failed.
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22.14.0
