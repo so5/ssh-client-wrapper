@@ -11,6 +11,8 @@ declare module "ssh-client-wrapper" {
     ConnectTimeout?: number;
     maxRetry?: number;
     retryDuration?: number;
+    retryableExitCodes?: number[];
+    replaceRetryableExitCodes?: boolean;
     rcfile?: string;
     prependCmd?: string;
     sshOpt?: string[];
@@ -45,13 +47,17 @@ declare module "ssh-client-wrapper" {
       src: string[],
       dst: string,
       opt?: string[],
-      timeout?: number
+      timeout?: number,
+      retryableExitCodes?: number[],
+      replaceRetryableExitCodes?: boolean
     ): Promise<void>;
     recv(
       src: string[],
       dst: string,
       opt?: string[],
-      timeout?: number
+      timeout?: number,
+      retryableExitCodes?: number[],
+      replaceRetryableExitCodes?: boolean
     ): Promise<void>;
     canConnect(timeout?: number): Promise<boolean>;
     disconnect(): Promise<void>;

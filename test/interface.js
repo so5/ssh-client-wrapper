@@ -145,6 +145,20 @@ describe("test for interface", ()=>{
       it("should be rejected if opt is not array of string", ()=>{
         return expect(ssh.send(["src"], "dst", [null])).to.be.rejectedWith("opt must be array of string");
       });
+      it("should call send with retryableExitCodes", ()=>{
+        ssh.send(["src"], "dst", [], 0, [23, 24]);
+        expect(send).to.be.calledWith(hostInfo, ["src"], "dst", [], 0, [23, 24], false);
+      });
+      it("should call send with retryableExitCodes and replaceRetryableExitCodes", ()=>{
+        ssh.send(["src"], "dst", [], 0, [23], true);
+        expect(send).to.be.calledWith(hostInfo, ["src"], "dst", [], 0, [23], true);
+      });
+      it("should be rejected if retryableExitCodes is not array of integer", ()=>{
+        return expect(ssh.send(["src"], "dst", [], 0, ["23"])).to.be.rejectedWith("retryableExitCodes must be array of integer");
+      });
+      it("should be rejected if replaceRetryableExitCodes is not boolean", ()=>{
+        return expect(ssh.send(["src"], "dst", [], 0, [23], "true")).to.be.rejectedWith("replaceRetryableExitCodes must be boolean");
+      });
     });
     describe("test for recv", ()=>{
       it("should call recv with src and dst", ()=>{
@@ -180,6 +194,20 @@ describe("test for interface", ()=>{
       });
       it("should be rejected if opt is not array of string", ()=>{
         return expect(ssh.recv(["src"], "dst", [null])).to.be.rejectedWith("opt must be array of string");
+      });
+      it("should call recv with retryableExitCodes", ()=>{
+        ssh.recv(["src"], "dst", [], 0, [23, 24]);
+        expect(recv).to.be.calledWith(hostInfo, ["src"], "dst", [], 0, [23, 24], false);
+      });
+      it("should call recv with retryableExitCodes and replaceRetryableExitCodes", ()=>{
+        ssh.recv(["src"], "dst", [], 0, [23], true);
+        expect(recv).to.be.calledWith(hostInfo, ["src"], "dst", [], 0, [23], true);
+      });
+      it("should be rejected if retryableExitCodes is not array of integer", ()=>{
+        return expect(ssh.recv(["src"], "dst", [], 0, ["23"])).to.be.rejectedWith("retryableExitCodes must be array of integer");
+      });
+      it("should be rejected if replaceRetryableExitCodes is not boolean", ()=>{
+        return expect(ssh.recv(["src"], "dst", [], 0, [23], "true")).to.be.rejectedWith("replaceRetryableExitCodes must be boolean");
       });
     });
     describe("test for remoteToRemoteCopy", ()=>{

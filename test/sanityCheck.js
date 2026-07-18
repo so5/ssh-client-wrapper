@@ -95,6 +95,55 @@ describe("test for sanityCheck", ()=>{
       noStrictHostKeyChecking: false
     });
   });
+  it("should accept retryableExitCodes as array of integer", ()=>{
+    expect(sanityCheck({
+      host,
+      retryableExitCodes: [23, 24]
+    })).to.deep.equal({
+      host,
+      ...defaultValues,
+      retryableExitCodes: [23, 24]
+    });
+  });
+  it("should accept empty array for retryableExitCodes", ()=>{
+    expect(sanityCheck({
+      host,
+      retryableExitCodes: []
+    })).to.deep.equal({
+      host,
+      ...defaultValues,
+      retryableExitCodes: []
+    });
+  });
+  it("should coerce string members of retryableExitCodes to integer", ()=>{
+    expect(sanityCheck({
+      host,
+      retryableExitCodes: ["23", "24"]
+    })).to.deep.equal({
+      host,
+      ...defaultValues,
+      retryableExitCodes: [23, 24]
+    });
+  });
+  it("should throw error if retryableExitCodes has non-integer member", ()=>{
+    expect(sanityCheck.bind(null, { host, retryableExitCodes: ["abc"] })).to.throw(/invalid retryableExitCodes/);
+  });
+  it("should throw error if retryableExitCodes is not an array", ()=>{
+    expect(sanityCheck.bind(null, { host, retryableExitCodes: "notarray" })).to.throw(/invalid retryableExitCodes/);
+  });
+  it("should just change type if string value specified for replaceRetryableExitCodes", ()=>{
+    expect(sanityCheck({
+      host,
+      replaceRetryableExitCodes: "true"
+    })).to.deep.equal({
+      host,
+      ...defaultValues,
+      replaceRetryableExitCodes: true
+    });
+  });
+  it("should throw error if replaceRetryableExitCodes is not boolean-coercible", ()=>{
+    expect(sanityCheck.bind(null, { host, replaceRetryableExitCodes: "notabool" })).to.throw(/invalid replaceRetryableExitCodes/);
+  });
   it("shold keep addtional properties", ()=>{
     const testData = {
       host,

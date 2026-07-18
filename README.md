@@ -60,6 +60,10 @@ Creates a new SSH client instance.
     *   `keyFile` (string, optional): The path to the private key file for key-based authentication.
     *   `passphrase` (string | Function, optional): The passphrase for the private key, or a function that returns it.
     *   `noStrictHostKeyChecking` (boolean, optional): If `true`, bypasses strict host key checking.
+    *   `maxRetry` (number, optional): Max number of retries for a retryable error. Defaults to `3`.
+    *   `retryDuration` (number, optional): Time (msec) to wait between each retry. Defaults to `1000`.
+    *   `retryableExitCodes` (number[], optional): Additional rsync exit codes to treat as retryable for `.send()`/`.recv()`. See [Retry behavior for `.send()` / `.recv()`](#retry-behavior-for-send--recv) below.
+    *   `replaceRetryableExitCodes` (boolean, optional): If `true`, `retryableExitCodes` replaces the built-in retryable exit code list instead of adding to it.
     *   And more... see `lib/index.js` for all available options.
 
 ### `.exec(cmd, [timeout], [outputCallback], [rcfile], [prependCmd])`
@@ -82,19 +86,56 @@ Executes a command and interacts with it, similar to the `expect` tool.
 
 *   Returns: `Promise<number>` - The return code of the command.
 
-### `.send(src, dst, [opt], [timeout])`
+### `.send(src, dst, [opt], [timeout], [retryableExitCodes], [replaceRetryableExitCodes])`
 Uploads files or directories to the remote host using `rsync`.
 
 *   `src` (string[]): An array of local paths to send.
 *   `dst` (string): The remote destination path.
+*   `retryableExitCodes` (number[], optional): Per-call override of retryable rsync exit codes for this call only (takes precedence over `hostInfo.retryableExitCodes`). See [Retry behavior for `.send()` / `.recv()`](#retry-behavior-for-send--recv).
+*   `replaceRetryableExitCodes` (boolean, optional): If `true`, `retryableExitCodes` replaces the built-in default instead of adding to it. Defaults to `false`.
 *   Returns: `Promise<void>`
 
-### `.recv(src, dst, [opt], [timeout])`
+### `.recv(src, dst, [opt], [timeout], [retryableExitCodes], [replaceRetryableExitCodes])`
 Downloads files or directories from the remote host using `rsync`.
 
 *   `src` (string[]): An array of remote paths to receive.
 *   `dst` (string): The local destination path.
+*   `retryableExitCodes` (number[], optional): Per-call override of retryable rsync exit codes for this call only (takes precedence over `hostInfo.retryableExitCodes`). See [Retry behavior for `.send()` / `.recv()`](#retry-behavior-for-send--recv).
+*   `replaceRetryableExitCodes` (boolean, optional): If `true`, `retryableExitCodes` replaces the built-in default instead of adding to it. Defaults to `false`.
 *   Returns: `Promise<void>`
+
+### Retry behavior for `.send()` / `.recv()`
+
+`.send()` and `.recv()` automatically retry (up to `hostInfo.maxRetry` times, default `3`, waiting `hostInfo.retryDuration` msec between attempts, default `1000`) when:
+
+*   the underlying `rsync` process exits with one of the built-in retryable exit codes: `10, 11, 12, 13, 14` (I/O and protocol errors that are commonly transient), or
+*   the SSH connection fails with a transient `kex_exchange_identification` error.
+
+If your environment sees other rsync exit codes that should also be retried (for example on a shared HPC filesystem where a "partial transfer" exit code can occur while output files are still being flushed), you can add to or replace the retryable list without changing the library's default, at two levels:
+
+*   **Per instance**, via `hostInfo.retryableExitCodes` / `hostInfo.replaceRetryableExitCodes` — applies to every `.send()`/`.recv()` call made through that `SshClientWrapper`.
+*   **Per call**, via the trailing `retryableExitCodes` / `replaceRetryableExitCodes` arguments on `.send()`/`.recv()` — applies only to that call, and fully overrides the instance-level setting if provided.
+
+By default (`replaceRetryableExitCodes: false`), `retryableExitCodes` is **added** to the built-in list — the common case, since it doesn't require knowing or repeating the built-in codes. Set `replaceRetryableExitCodes: true` to use `retryableExitCodes` verbatim instead (pass `[]` to disable exit-code-based retry entirely).
+
+```javascript
+// add exit codes 23 and 24 to the built-in retryable list, for every send/recv on this instance
+const ssh = new SshClientWrapper({
+  host: 'remote.server.com',
+  user: 'username',
+  password: 'password',
+  retryableExitCodes: [23, 24]
+});
+
+// or, just for a single call:
+await ssh.recv(['/remote/output/*'], './local-output', [], 0, [23, 24]);
+
+// full replace: only retry on 23 for this call
+await ssh.recv(['/remote/output/*'], './local-output', [], 0, [23], true);
+
+// disable exit-code-based retry entirely for this call
+await ssh.recv(['/remote/output/*'], './local-output', [], 0, [], true);
+```
 
 ### `.remoteToRemoteCopy(src, dstHostInfo, dst, [opt], [timeout])`
 Copies files or directories directly from this remote host to another remote host using `rsync` with SSH agent forwarding.

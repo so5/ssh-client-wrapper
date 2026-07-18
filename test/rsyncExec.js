@@ -42,6 +42,9 @@ import {
   remoteFiles
 } from "./testUtil/testFiles.js";
 
+//retryWrapper's built-in default (see resolveRetryableExitCodes/retryWrapper in lib) when hostInfo.maxRetry is not set
+const defaultMaxRetry = 3;
+
 const formatLsOutput = (array)=>{
   const rt = [];
   for (const e of array) {
@@ -212,7 +215,7 @@ describe("test rsync exec", function () {
       });
       //only option need special treatment in rsyncExec. it's hard to set in WHEEL
       it.skip("[not implemented] should send directory tree if only filter matched", async ()=>{
-        await send(hostInfo, [localRoot], remoteEmptyDir, [`--include=${localRoot}`, `--include=${localRoot}/ba*`, `--include=${localRoot}/hoge/*`, "--exclude=*"], [], 0);
+        await send(hostInfo, [localRoot], remoteEmptyDir, [`--include=${localRoot}`, `--include=${localRoot}/ba*`, `--include=${localRoot}/hoge/*`, "--exclude=*"], 0);
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["hoge", "bar", "baz"]);
@@ -222,7 +225,7 @@ describe("test rsync exec", function () {
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should send directory tree if exclude filter not matched", async ()=>{
-        await send(hostInfo, [localRoot], remoteEmptyDir, ["--exclude=ba*", "--exclude=hoge*}"], [], 0);
+        await send(hostInfo, [localRoot], remoteEmptyDir, ["--exclude=ba*", "--exclude=hoge*}"], 0);
 
         await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "hoge", "huga"]);
@@ -238,7 +241,7 @@ describe("test rsync exec", function () {
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo"]);
       });
       it("shoud not send empty directory with -m option", async ()=>{
-        await send(hostInfo, [localEmptyDir], remoteEmptyDir, ["-m"], [], 0);
+        await send(hostInfo, [localEmptyDir], remoteEmptyDir, ["-m"], 0);
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
         expect(rt).to.have.lengthOf(0);
@@ -253,6 +256,59 @@ describe("test rsync exec", function () {
     describe("error case", ()=>{
       it("should not send directory to existing file path", ()=>{
         return expect(send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0)).to.be.rejected;
+      });
+      it("should not retry by default (exit code 3 is not in the built-in retryable list)", async ()=>{
+        try {
+          await send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.be.undefined;
+        }
+      });
+      it("should retry when exit code is merged in via retryableExitCodes", async function () {
+        this.timeout(15000);
+
+        try {
+          await send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0, [3]);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.equal(defaultMaxRetry + 1);
+          expect(e.maxRetryCount).to.equal(defaultMaxRetry);
+        }
+      });
+      it("should retry when exit code is set via replaceRetryableExitCodes", async function () {
+        this.timeout(15000);
+
+        try {
+          await send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0, [3], true);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.equal(defaultMaxRetry + 1);
+        }
+      });
+      it("should retry when configured via hostInfo.retryableExitCodes", async function () {
+        this.timeout(15000);
+        const hostInfoWithRetry = { ...hostInfo, retryableExitCodes: [3] };
+        try {
+          await send(hostInfoWithRetry, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.equal(defaultMaxRetry + 1);
+        }
+      });
+      it("method-level retryableExitCodes should fully override hostInfo-level setting", async ()=>{
+        const hostInfoWithRetry = { ...hostInfo, retryableExitCodes: [3] };
+        try {
+          await send(hostInfoWithRetry, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0, [99], true);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.be.undefined;
+        }
       });
     });
   });
@@ -318,7 +374,7 @@ describe("test rsync exec", function () {
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["piyo", "puyo"]);
       });
-      it.skip("[temporarily disabled number 23 was thrown] should accept glob pattern as src", async ()=>{
+      it("should accept multiple glob patterns as src", async ()=>{
         await recv(hostInfo, [path.posix.join(remoteRoot, "hoge/p[iu]yo"), path.posix.join(remoteRoot, "foo")], path.resolve(localEmptyDir), [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
@@ -375,7 +431,7 @@ describe("test rsync exec", function () {
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should not recv files which matches exclude filter", async ()=>{
-        await recv(hostInfo, [remoteRoot], localEmptyDir, ["--exclude=*/ba*", "--exclude=hoge"], [], 0);
+        await recv(hostInfo, [remoteRoot], localEmptyDir, ["--exclude=*/ba*", "--exclude=hoge"], 0);
 
         const rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["foo", "huga"]);
@@ -400,6 +456,59 @@ describe("test rsync exec", function () {
     describe("error case", ()=>{
       it("should not send directory to existing file path", ()=>{
         return expect(recv(hostInfo, [remoteRoot], localFiles[0], [], 0)).to.be.rejected;
+      });
+      it("should not retry by default (exit code 3 is not in the built-in retryable list)", async ()=>{
+        try {
+          await recv(hostInfo, [remoteRoot], localFiles[0], [], 0);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.be.undefined;
+        }
+      });
+      it("should retry when exit code is merged in via retryableExitCodes", async function () {
+        this.timeout(15000);
+
+        try {
+          await recv(hostInfo, [remoteRoot], localFiles[0], [], 0, [3]);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.equal(defaultMaxRetry + 1);
+          expect(e.maxRetryCount).to.equal(defaultMaxRetry);
+        }
+      });
+      it("should retry when exit code is set via replaceRetryableExitCodes", async function () {
+        this.timeout(15000);
+
+        try {
+          await recv(hostInfo, [remoteRoot], localFiles[0], [], 0, [3], true);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.equal(defaultMaxRetry + 1);
+        }
+      });
+      it("should retry when configured via hostInfo.retryableExitCodes", async function () {
+        this.timeout(15000);
+        const hostInfoWithRetry = { ...hostInfo, retryableExitCodes: [3] };
+        try {
+          await recv(hostInfoWithRetry, [remoteRoot], localFiles[0], [], 0);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.equal(defaultMaxRetry + 1);
+        }
+      });
+      it("method-level retryableExitCodes should fully override hostInfo-level setting", async ()=>{
+        const hostInfoWithRetry = { ...hostInfo, retryableExitCodes: [3] };
+        try {
+          await recv(hostInfoWithRetry, [remoteRoot], localFiles[0], [], 0, [99], true);
+          expect.fail("should have thrown");
+        } catch (e) {
+          expect(e.rt).to.equal(3);
+          expect(e.retryCount).to.be.undefined;
+        }
       });
     });
   });
