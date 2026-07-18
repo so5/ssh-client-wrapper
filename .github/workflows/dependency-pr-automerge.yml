@@ -34,6 +34,7 @@ jobs:
     outputs:
       bump: ${{ steps.decide.outputs.bump }}
       source: ${{ steps.decide.outputs.source }}
+      details: ${{ steps.decide.outputs.details }}
     steps:
       # Default ref (base branch) - deliberately not the PR head. Only
       # needed to get classify-snyk-bump.js from a trusted source.
@@ -81,8 +82,19 @@ jobs:
             SOURCE="snyk"
           fi
           [ -z "$BUMP" ] && BUMP="unknown"
-          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
-          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          # Details are always taken from the package.json diff regardless of
+          # source, since it reflects the actual direct dependency change -
+          # Dependabot's own grouped-PR title/body can describe transitive
+          # packages pulled in by the real bump instead (e.g. "ajv, lodash"
+          # when the actual change was a major bump of glob, which bundles
+          # newer ajv/lodash internally).
+          {
+            echo "bump=$BUMP"
+            echo "source=$SOURCE"
+            echo "details<<PKGJSON_DETAILS_EOF"
+            echo "${{ steps.pkgjson-diff.outputs.details }}"
+            echo "PKGJSON_DETAILS_EOF"
+          } >> "$GITHUB_OUTPUT"
 
   approve-and-merge:
     needs: classify
@@ -139,9 +151,10 @@ jobs:
           fi
           curl -sS -X POST -H 'Content-type: application/json' \
             --data "$(node -e '
-              const [, repo, num, url, bump, source] = process.argv;
+              const [, repo, num, url, bump, source, details] = process.argv;
+              const detailsLine = details ? `\n${details}` : "";
               console.log(JSON.stringify({
-                text: `:warning: *${bump} update* from ${source} needs manual review in ${repo}\n<${url}|PR #${num}>`
+                text: `:warning: *${bump} update* from ${source} needs manual review in ${repo}${detailsLine}\n<${url}|PR #${num}>`
               }));
-            ' "${{ github.repository }}" "${{ github.event.pull_request.number }}" "${{ github.event.pull_request.html_url }}" "${{ needs.classify.outputs.bump }}" "${{ needs.classify.outputs.source }}")" \
+            ' "${{ github.repository }}" "${{ github.event.pull_request.number }}" "${{ github.event.pull_request.html_url }}" "${{ needs.classify.outputs.bump }}" "${{ needs.classify.outputs.source }}" "${{ needs.classify.outputs.details }}")" \
             "$SLACK_WEBHOOK_URL"

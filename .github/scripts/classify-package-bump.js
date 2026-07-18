@@ -57,25 +57,37 @@ function worstBump(bumps) {
 
 function diffDependencyVersions(basePkg, headPkg) {
   const sections = ["dependencies", "devDependencies"];
-  const bumps = [];
+  const changes = [];
   for (const section of sections) {
     const baseDeps = basePkg[section] || {};
     const headDeps = headPkg[section] || {};
     for (const name of Object.keys(headDeps)) {
       if (baseDeps[name] && baseDeps[name] !== headDeps[name]) {
-        bumps.push(classifyBump(baseDeps[name], headDeps[name]));
+        changes.push({
+          name,
+          from: baseDeps[name],
+          to: headDeps[name],
+          bump: classifyBump(baseDeps[name], headDeps[name])
+        });
       }
     }
   }
-  return bumps;
+  return changes;
+}
+
+function formatChanges(changes) {
+  return changes.map((c)=>{
+    return `${c.name}: ${c.from} -> ${c.to}`;
+  }).join(", ");
 }
 
 function classifyFromTitle(title) {
-  const m = /from\s+([0-9][A-Za-z0-9.-]*)\s+to\s+([0-9][A-Za-z0-9.-]*)/i.exec(title || "");
+  const m = /([\w@/.-]+)\s+from\s+([0-9][\w.-]*)\s+to\s+([0-9][\w.-]*)/i.exec(title || "");
   if (!m) {
-    return "unknown";
+    return null;
   }
-  return classifyBump(m[1], m[2]);
+  const [, name, from, to] = m;
+  return { name, from, to, bump: classifyBump(from, to) };
 }
 
 function main() {
@@ -83,14 +95,22 @@ function main() {
   const basePkg = JSON.parse(fs.readFileSync(basePath, "utf8"));
   const headPkg = JSON.parse(fs.readFileSync(headPath, "utf8"));
 
-  const bumps = diffDependencyVersions(basePkg, headPkg);
-  let bump = bumps.length > 0 ? worstBump(bumps) : "unknown";
+  const changes = diffDependencyVersions(basePkg, headPkg);
+  let bump = changes.length > 0 ? worstBump(changes.map((c)=>{
+    return c.bump;
+  })) : "unknown";
+  let details = formatChanges(changes);
 
   if (bump === "unknown") {
-    bump = classifyFromTitle(prTitle);
+    const fromTitle = classifyFromTitle(prTitle);
+    if (fromTitle) {
+      bump = fromTitle.bump;
+      details = `${fromTitle.name}: ${fromTitle.from} -> ${fromTitle.to}`;
+    }
   }
 
   console.log(`bump=${bump}`);
+  console.log(`details=${details}`);
 }
 
 main();
