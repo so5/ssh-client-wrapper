@@ -1,7 +1,7 @@
 [![npm version](https://badge.fury.io/js/ssh-client-wrapper.svg)](https://badge.fury.io/js/ssh-client-wrapper)
 [![Known Vulnerabilities](https://snyk.io/test/github/so5/ssh-client-wrapper/badge.svg)](https://snyk.io/test/github/so5/ssh-client-wrapper)
 [![Coverage Status](https://coveralls.io/repos/github/so5/ssh-client-wrapper/badge.svg?branch=main)](https://coveralls.io/github/so5/ssh-client-wrapper?branch=main)
-[![Maintainability](https://api.codeclimate.com/v1/badges/8f3c0ea00e755ae31081/maintainability)](https://codeclimate.com/github/so5/ssh-client-wrapper/maintainability)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=so5_ssh-client-wrapper&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=so5_ssh-client-wrapper)
 # ssh-client-wrapper
 open ssh client wrapper library for nodejs
 
