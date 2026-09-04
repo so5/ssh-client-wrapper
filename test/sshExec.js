@@ -1,5 +1,5 @@
-import path from "path";
-import { fileURLToPath } from "url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
@@ -148,6 +148,48 @@ describe("test for ssh execution", function () {
     it("should be rejected if port number is out of range(65536)", async ()=>{
       hostInfo2.port = 65536;
       return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith("invalid port specified 65536");
+    });
+  });
+  describe("#ssh-agent authentication", ()=>{
+    let h;
+    before(function () {
+      if (!hostInfo.keyFile) {
+        this.skip();
+      }
+    });
+    beforeEach(async ()=>{
+      await disconnect(hostInfo);
+      h = { ...hostInfo, masterPty: null };
+      delete h.managedAgentSock;
+      delete h._agentEnsuredAt;
+    });
+    afterEach(async ()=>{
+      await disconnect(h);
+    });
+    it("should load the key into an agent and route ssh through it", async ()=>{
+      const rt = await sshExec(h, "echo agent-ok", 0, sshout);
+      expect(rt).to.equal(0);
+      expect(h.managedAgentSock).to.be.a("string").and.not.equal("");
+    });
+    it("should not touch the agent when useAgent is false", async ()=>{
+      h.useAgent = false;
+      const rt = await sshExec(h, "echo legacy-ok", 0, sshout);
+      expect(rt).to.equal(0);
+      expect(h).to.not.have.property("managedAgentSock");
+    });
+    it("should consume the passphrase only once across a master reset", async function () {
+      if (!process.env.TEST_PH) {
+        this.skip();
+      }
+      const phSpy = sinon.spy(()=>{
+        return Promise.resolve(process.env.TEST_PH);
+      });
+      h.passphrase = phSpy;
+      h.ControlPersist = 1;
+      await sshExec(h, "echo one", 0, sshout);
+      await disconnect(h);
+      await sshExec(h, "echo two", 0, sshout);
+      expect(phSpy.callCount).to.equal(1);
     });
   });
 });
