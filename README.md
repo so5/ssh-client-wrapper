@@ -64,6 +64,9 @@ Creates a new SSH client instance.
     *   `retryDuration` (number, optional): Time (msec) to wait between each retry. Defaults to `1000`.
     *   `retryableExitCodes` (number[], optional): Additional rsync exit codes to treat as retryable for `.send()`/`.recv()`. See [Retry behavior for `.send()` / `.recv()`](#retry-behavior-for-send--recv) below.
     *   `replaceRetryableExitCodes` (boolean, optional): If `true`, `retryableExitCodes` replaces the built-in retryable exit code list instead of adding to it.
+    *   `useAgent` (boolean, optional): Authenticate key-based hosts through an ssh-agent instead of replaying the passphrase on every connection. Defaults to `true` when `keyFile` is set. Set `false` to force the legacy behavior. See [SSH agent authentication](#ssh-agent-authentication) below.
+    *   `identityAgent` (string, optional): Path to an existing ssh-agent socket to authenticate through (emitted as `-oIdentityAgent`). When set, the wrapper uses that agent as-is and manages nothing.
+    *   `agentKeyTTL` (number, optional): Lifetime in seconds applied to keys the wrapper adds to an agent (`ssh-add -t`). Defaults to `3600`.
     *   And more... see `lib/index.js` for all available options.
 
 ### `.exec(cmd, [timeout], [outputCallback], [rcfile], [prependCmd])`
@@ -178,3 +181,24 @@ Checks if a connection to the remote host can be established.
 
 ### `.disconnect()`
 Closes the master SSH connection to the remote host.
+
+### `.dispose()`
+Removes this host's key from the wrapper-managed (or caller-supplied) ssh-agent and then closes the master SSH connection. It does **not** kill the shared agent process, since other hosts or processes may still be using it. Safe to call repeatedly.
+
+*   Returns: `Promise<void>`
+
+### SSH agent authentication
+
+When `keyFile` is set, key-based authentication goes through an **ssh-agent** by default (`useAgent: true`). The passphrase (if any) is consumed once to `ssh-add` the key; every subsequent connection and every master-connection rebuild after a `ControlPersist` expiry then authenticates non-interactively, so the wrapper never has to hold a replayable secret.
+
+How the agent is chosen, per host, at connect time:
+
+1.  If `identityAgent` is set, that socket is used as-is.
+2.  Otherwise, if `SSH_AUTH_SOCK` is present in the environment, that agent is used (the key is `ssh-add`ed into it with a `-t` lifetime, so it does not linger there indefinitely).
+3.  Otherwise, on POSIX, the wrapper spawns one shared `ssh-agent` per user, at a fixed socket under `$XDG_RUNTIME_DIR` / `/run/user/<uid>` / `/tmp` (overridable with `SSH_CLIENT_WRAPPER_AGENT_DIR`). It is reused by later runs and is not killed on exit; keys expire from it via `agentKeyTTL` (default 1 h).
+
+If no agent can be used, or `ssh-add` fails, the wrapper silently falls back to the legacy behavior of answering the passphrase prompt on each connection. Set `useAgent: false` to force that path.
+
+**Keyless / browser agents:** with no `keyFile`, set `identityAgent` to the socket of an already-populated agent (for example [`bssh-agent`](https://github.com/so5/browser-ssh-agent), which keeps the private key in a browser tab) and the wrapper will authenticate through it.
+
+**Windows:** an already-running agent (the OpenSSH Authentication Agent service, or a supplied `identityAgent`) is used, but the wrapper never spawns one; without a reachable agent it falls back to the legacy path.

@@ -20,6 +20,7 @@ const expectStub = sinon.stub();
 const send = sinon.stub();
 const recv = sinon.stub();
 const remoteToRemoteCopy = sinon.stub();
+const removeKey = sinon.stub();
 
 const deps = {
   sshExec,
@@ -28,7 +29,8 @@ const deps = {
   expect: expectStub,
   send,
   recv,
-  remoteToRemoteCopy
+  remoteToRemoteCopy,
+  removeKey
 };
 
 describe("test for interface", ()=>{
@@ -51,6 +53,26 @@ describe("test for interface", ()=>{
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("remoteToRemoteCopy");
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("canConnect");
       expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("disconnect");
+      expect(new SshClientWrapper({ host: "hoge" }, deps)).to.have.property("dispose");
+    });
+    it("should carry the new agent options through unchanged", ()=>{
+      const ssh = new SshClientWrapper({
+        host: "hoge",
+        useAgent: false,
+        identityAgent: "/run/agent.sock",
+        agentKeyTTL: 60
+      }, deps);
+      expect(ssh.hostInfo).to.deep.equal({
+        host: "hoge",
+        ControlPersist: 180,
+        maxRetry: 3,
+        retryDuration: 1000,
+        masterPty: null,
+        rsyncVersion: null,
+        useAgent: false,
+        identityAgent: "/run/agent.sock",
+        agentKeyTTL: 60
+      });
     });
   });
   describe("test for public method", ()=>{
@@ -71,6 +93,22 @@ describe("test for interface", ()=>{
       recv.reset();
       remoteToRemoteCopy.reset();
       expectStub.reset();
+      removeKey.reset();
+    });
+    describe("test for dispose", ()=>{
+      it("should only disconnect when no agent key is loaded", async ()=>{
+        await ssh.dispose();
+        expect(removeKey).to.not.be.called;
+        expect(disconnect).to.be.calledWith(hostInfo);
+      });
+      it("should removeKey then disconnect when an agent key is loaded", async ()=>{
+        ssh.hostInfo.managedAgentSock = "/tmp/scw/agent.sock";
+        ssh.hostInfo.keyFile = "/home/u/.ssh/id_ed25519";
+        await ssh.dispose();
+        expect(removeKey).to.be.calledWith("/tmp/scw/agent.sock", "/home/u/.ssh/id_ed25519");
+        expect(removeKey).to.be.calledBefore(disconnect);
+        expect(ssh.hostInfo).to.not.have.property("managedAgentSock");
+      });
     });
     describe("test for exec", ()=>{
       it("should call sshExec with cmd", ()=>{

@@ -152,4 +152,33 @@ describe("test for sanityCheck", ()=>{
     };
     expect(sanityCheck(testData)).to.deep.equal(testData);
   });
+  it("should coerce string value for useAgent", ()=>{
+    expect(sanityCheck({ host, useAgent: "true" })).to.deep.equal({ host, ...defaultValues, useAgent: true });
+    expect(sanityCheck({ host, useAgent: 0 })).to.deep.equal({ host, ...defaultValues, useAgent: false });
+  });
+  it("should throw error if useAgent is not boolean-coercible", ()=>{
+    expect(sanityCheck.bind(null, { host, useAgent: "notabool" })).to.throw(/invalid useAgent/);
+  });
+  it("should not inject a default for useAgent", ()=>{
+    expect(sanityCheck({ host, useAgent: false })).to.deep.equal({ host, ...defaultValues, useAgent: false });
+  });
+  it("should trim identityAgent and remove it when empty", ()=>{
+    expect(sanityCheck({ host, identityAgent: "  /run/agent.sock  " })).to.deep.equal({
+      host,
+      ...defaultValues,
+      identityAgent: "/run/agent.sock"
+    });
+    expect(sanityCheck({ host, identityAgent: "   " })).to.deep.equal({ host, ...defaultValues });
+  });
+  it("should throw error if identityAgent contains whitespace", ()=>{
+    expect(sanityCheck.bind(null, { host, identityAgent: "/foo bar/agent.sock" })).to.throw(/invalid identityAgent/);
+  });
+  it("should coerce agentKeyTTL and drop out-of-range values", ()=>{
+    expect(sanityCheck({ host, agentKeyTTL: "3600" })).to.deep.equal({ host, ...defaultValues, agentKeyTTL: 3600 });
+    expect(sanityCheck({ host, agentKeyTTL: "0" })).to.deep.equal({ host, ...defaultValues });
+    expect(sanityCheck({ host, agentKeyTTL: "-1" })).to.deep.equal({ host, ...defaultValues });
+  });
+  it("should throw error if agentKeyTTL is not a number", ()=>{
+    expect(sanityCheck.bind(null, { host, agentKeyTTL: "abc" })).to.throw(/invalid agentKeyTTL/);
+  });
 });

@@ -3,12 +3,13 @@ declare module "ssh-client-wrapper" {
     host: string;
     user: string;
     port?: number;
-    password?: string | (() => string);
-    passphrase?: string | (() => string);
+    password?: string | (() => string | Promise<string>);
+    passphrase?: string | (() => string | Promise<string>);
     keyFile?: string;
     noStrictHostKeyChecking?: boolean;
     ControlPersist?: number;
     ConnectTimeout?: number;
+    ControlPersistDir?: string;
     maxRetry?: number;
     retryDuration?: number;
     retryableExitCodes?: number[];
@@ -16,6 +17,10 @@ declare module "ssh-client-wrapper" {
     rcfile?: string;
     prependCmd?: string;
     sshOpt?: string[];
+    useAgent?: boolean;
+    identityAgent?: string;
+    agentKeyTTL?: number;
+    reauthRequired?: () => void;
   };
 
   class SshClientWrapper {
@@ -60,7 +65,15 @@ declare module "ssh-client-wrapper" {
       replaceRetryableExitCodes?: boolean
     ): Promise<void>;
     canConnect(timeout?: number): Promise<boolean>;
+    remoteToRemoteCopy(
+      src: string[],
+      dstHostInfo: HostInfo,
+      dst: string,
+      opt?: string[],
+      timeout?: number
+    ): Promise<void>;
     disconnect(): Promise<void>;
+    dispose(): Promise<void>;
   }
 
   export default SshClientWrapper;
