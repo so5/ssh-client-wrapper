@@ -1,3 +1,22 @@
+# [3.0.0](https://github.com/so5/ssh-client-wrapper/compare/v2.17.1...v3.0.0) (2026-09-04)
+
+
+### Features
+
+* authenticate key-based hosts through an ssh-agent ([7ec2d57](https://github.com/so5/ssh-client-wrapper/commit/7ec2d57643eaf649cd80196bfe4ceed47735c76d))
+
+
+### BREAKING CHANGES
+
+* hosts configured with a keyFile now authenticate via
+an ssh-agent by default. The passphrase callback is invoked once by
+ssh-add rather than once per connection, and a per-user ssh-agent
+process may be spawned and left running. Set hostInfo.useAgent = false
+to restore the previous pty passphrase-replay behavior.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01PAC2AN9SHN1KYSt5b8G7zc
+
 ## [2.17.1](https://github.com/so5/ssh-client-wrapper/compare/v2.17.0...v2.17.1) (2026-07-20)
 
 
