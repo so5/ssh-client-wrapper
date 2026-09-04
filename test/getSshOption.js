@@ -47,18 +47,18 @@ describe("test for getSshOption", ()=>{
     expect(sshOpts[3]).to.equal("-oControlPersist=180");
   });
   it("should emit -oIdentityAgent for a wrapper-managed agent socket", ()=>{
-    const hostInfo = { ...defaultValues, managedAgentSock: "/tmp/scw-1000/agent.sock" };
-    expect(getSshOption(hostInfo)).to.include("-oIdentityAgent=/tmp/scw-1000/agent.sock");
+    const hostInfo = { ...defaultValues, managedAgentSock: "/run/scw/agent.sock" };
+    expect(getSshOption(hostInfo)).to.include("-oIdentityAgent=/run/scw/agent.sock");
   });
   it("should emit -oIdentityAgent for a caller-supplied identityAgent", ()=>{
     const hostInfo = { ...defaultValues, identityAgent: "/run/user/1000/keyring/ssh" };
     expect(getSshOption(hostInfo)).to.include("-oIdentityAgent=/run/user/1000/keyring/ssh");
   });
   it("should prefer managedAgentSock over identityAgent", ()=>{
-    const hostInfo = { ...defaultValues, managedAgentSock: "/tmp/managed.sock", identityAgent: "/tmp/external.sock" };
+    const hostInfo = { ...defaultValues, managedAgentSock: "/run/managed.sock", identityAgent: "/run/external.sock" };
     const sshOpts = getSshOption(hostInfo);
-    expect(sshOpts).to.include("-oIdentityAgent=/tmp/managed.sock");
-    expect(sshOpts).to.not.include("-oIdentityAgent=/tmp/external.sock");
+    expect(sshOpts).to.include("-oIdentityAgent=/run/managed.sock");
+    expect(sshOpts).to.not.include("-oIdentityAgent=/run/external.sock");
   });
   it("should not emit -oIdentityAgent when no agent is in play", ()=>{
     expect(getSshOption(defaultValues).join(" ")).to.not.match(/IdentityAgent/);

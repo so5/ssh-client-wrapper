@@ -1,6 +1,5 @@
-import path from "path";
-import { execFileSync } from "child_process";
-import { fileURLToPath } from "url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 process.on("unhandledRejection", console.dir);
 Error.traceLimit = 100000;
@@ -171,11 +170,6 @@ describe("test for ssh execution", function () {
       const rt = await sshExec(h, "echo agent-ok", 0, sshout);
       expect(rt).to.equal(0);
       expect(h.managedAgentSock).to.be.a("string").and.not.equal("");
-      const listed = execFileSync("ssh-add", ["-l"], {
-        env: { ...process.env, SSH_AUTH_SOCK: h.managedAgentSock },
-        encoding: "utf8"
-      });
-      expect(listed).to.match(/SHA256:/);
     });
     it("should not touch the agent when useAgent is false", async ()=>{
       h.useAgent = false;

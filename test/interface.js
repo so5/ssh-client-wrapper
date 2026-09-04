@@ -102,10 +102,10 @@ describe("test for interface", ()=>{
         expect(disconnect).to.be.calledWith(hostInfo);
       });
       it("should removeKey then disconnect when an agent key is loaded", async ()=>{
-        ssh.hostInfo.managedAgentSock = "/tmp/scw/agent.sock";
+        ssh.hostInfo.managedAgentSock = "/run/scw/agent.sock";
         ssh.hostInfo.keyFile = "/home/u/.ssh/id_ed25519";
         await ssh.dispose();
-        expect(removeKey).to.be.calledWith("/tmp/scw/agent.sock", "/home/u/.ssh/id_ed25519");
+        expect(removeKey).to.be.calledWith("/run/scw/agent.sock", "/home/u/.ssh/id_ed25519");
         expect(removeKey).to.be.calledBefore(disconnect);
         expect(ssh.hostInfo).to.not.have.property("managedAgentSock");
       });

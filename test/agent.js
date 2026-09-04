@@ -1,6 +1,6 @@
-import fs from "fs";
-import os from "os";
-import path from "path";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 process.on("unhandledRejection", console.dir);
 
@@ -118,7 +118,7 @@ describe("test for agent", ()=>{
       const pty = makeFakePty();
       _internal.spawn = sinon.stub().returns(pty);
       const ph = sinon.stub();
-      const p = addKey("/tmp/a.sock", "/k", ph, 111);
+      const p = addKey("/run/scw-test/agent.sock", "/k", ph, 111);
       pty.emitData("Identity added: /k (/k)\r\n");
       await p;
       expect(ph).to.not.be.called;
@@ -128,7 +128,7 @@ describe("test for agent", ()=>{
       const pty = makeFakePty();
       _internal.spawn = sinon.stub().returns(pty);
       const ph = sinon.stub().resolves("secret");
-      const p = addKey("/tmp/a.sock", "/k", ph, 111);
+      const p = addKey("/run/scw-test/agent.sock", "/k", ph, 111);
       pty.emitData("Enter passphrase for key '/k': ");
       await new Promise((resolve)=>{
         return setImmediate(resolve);
@@ -142,7 +142,7 @@ describe("test for agent", ()=>{
       const pty = makeFakePty();
       _internal.spawn = sinon.stub().returns(pty);
       const ph = sinon.stub().resolves("wrong");
-      const p = addKey("/tmp/a.sock", "/k", ph, 111);
+      const p = addKey("/run/scw-test/agent.sock", "/k", ph, 111);
       pty.emitData("Bad passphrase, try again for '/k': ");
       pty.emitData("Bad passphrase, try again for '/k': ");
       pty.emitData("Bad passphrase, try again for '/k': ");
@@ -155,7 +155,7 @@ describe("test for agent", ()=>{
     it("should reject with NO_AGENT when ssh-add cannot reach an agent", async ()=>{
       const pty = makeFakePty();
       _internal.spawn = sinon.stub().returns(pty);
-      const p = addKey("/tmp/a.sock", "/k", undefined, 111);
+      const p = addKey("/run/scw-test/agent.sock", "/k", undefined, 111);
       pty.emitData("Could not open a connection to your authentication agent.\r\n");
       const e = await p.catch((err)=>{
         return err;
@@ -165,7 +165,7 @@ describe("test for agent", ()=>{
     it("should reject with NO_PASSPHRASE when the key is encrypted and no secret is available", async ()=>{
       const pty = makeFakePty();
       _internal.spawn = sinon.stub().returns(pty);
-      const p = addKey("/tmp/a.sock", "/k", undefined, 111);
+      const p = addKey("/run/scw-test/agent.sock", "/k", undefined, 111);
       pty.emitData("Enter passphrase for key '/k': ");
       const e = await p.catch((err)=>{
         return err;
@@ -175,7 +175,7 @@ describe("test for agent", ()=>{
     it("should reject with ADDKEY_FAILED on a non-zero exit with no recognised message", async ()=>{
       const pty = makeFakePty();
       _internal.spawn = sinon.stub().returns(pty);
-      const p = addKey("/tmp/a.sock", "/k", undefined, 111);
+      const p = addKey("/run/scw-test/agent.sock", "/k", undefined, 111);
       pty.emitExit(2);
       const e = await p.catch((err)=>{
         return err;
@@ -191,10 +191,10 @@ describe("test for agent", ()=>{
       fs.chmodSync(f, 0o600);
       expect(socketIsTrusted(f)).to.be.true;
     });
-    it("should be false for a world-accessible file", ()=>{
+    it("should be false for a group-readable file", ()=>{
       const f = path.join(tmpDir, "s2");
-      fs.writeFileSync(f, "");
-      fs.chmodSync(f, 0o666);
+      fs.writeFileSync(f, "", { mode: 0o600 });
+      fs.chmodSync(f, 0o640);
       expect(socketIsTrusted(f)).to.be.false;
     });
     it("should be false for a missing path", ()=>{
