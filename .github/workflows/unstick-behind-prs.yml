@@ -26,8 +26,16 @@ jobs:
         run: |
           gh pr list --repo "${{ github.repository }}" --state open \
             --json number,author,autoMergeRequest,mergeStateStatus \
-            --jq '.[] | select(.autoMergeRequest != null) | select(.mergeStateStatus == "BEHIND") | select(.author.login | IN("dependabot[bot]", "app/dependabot", "snyk-bot", "app/snyk-bot")) | .number' \
-          | while read -r num; do
-              echo "PR #$num is behind with auto-merge enabled - requesting branch update"
-              gh api --method PUT "repos/${{ github.repository }}/pulls/$num/update-branch" || true
+            --jq '.[] | select(.autoMergeRequest != null) | select(.mergeStateStatus == "BEHIND") | select(.author.login | IN("dependabot[bot]", "app/dependabot", "snyk-bot", "app/snyk-bot")) | "\(.number) \(.author.login)"' \
+          | while read -r num author; do
+              case "$author" in
+                *dependabot*)
+                  # update-branch would make Dependabot refuse later rebases and
+                  # leave the new head's workflows awaiting approval.
+                  echo "PR #$num is behind with auto-merge enabled - asking Dependabot to rebase"
+                  gh pr comment "$num" --repo "${{ github.repository }}" --body "@dependabot rebase" || true ;;
+                *)
+                  echo "PR #$num is behind with auto-merge enabled - requesting branch update"
+                  gh api --method PUT "repos/${{ github.repository }}/pulls/$num/update-branch" || true ;;
+              esac
             done

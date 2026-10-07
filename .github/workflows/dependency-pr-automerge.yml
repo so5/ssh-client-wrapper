@@ -110,13 +110,26 @@ jobs:
       - name: Update PR branch if behind
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
           # Best-effort: with required-status-checks branch protection, if a
           # sibling bot PR merges first and advances the base branch, this PR
           # falls behind and auto-merge would otherwise wait indefinitely for
           # someone to update it. Proactively request the update ourselves.
           # 422 (already up to date / nothing to do) is fine, ignore it.
-          gh api --method PUT "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/update-branch" || true
+          #
+          # update-branch pushes a commit as github-actions, which (a) leaves the
+          # new head's workflows waiting for approval and (b) makes Dependabot
+          # refuse `@dependabot rebase` ("edited by someone other than
+          # Dependabot"). So for Dependabot PRs ask Dependabot to rebase instead.
+          if [ "$(gh pr view "$PR" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus)" = "BEHIND" ]; then
+            if [ "${{ github.event.pull_request.user.login }}" = "dependabot[bot]" ]; then
+              gh pr comment "$PR" --repo "$REPO" --body "@dependabot rebase" || true
+            else
+              gh api --method PUT "repos/$REPO/pulls/$PR/update-branch" || true
+            fi
+          fi
 
       - name: Enable GitHub native auto-merge
         env:
