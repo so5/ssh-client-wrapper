@@ -22,7 +22,7 @@
     "prepare": "husky"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20"
   },
   "author": "Naoyuki Sogo <sogo@longtail-software.co.jp>",
   "license": "MIT",
