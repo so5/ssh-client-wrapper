@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/so5/ssh-client-wrapper/compare/v3.0.0...v3.0.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **engines:** set Node requirement to >=20 ([#44](https://github.com/so5/ssh-client-wrapper/issues/44)) ([7030e42](https://github.com/so5/ssh-client-wrapper/commit/7030e426ce58601a578092403ac131f11f0f30e4))
+
 # [3.0.0](https://github.com/so5/ssh-client-wrapper/compare/v2.17.1...v3.0.0) (2026-09-04)
 
 
