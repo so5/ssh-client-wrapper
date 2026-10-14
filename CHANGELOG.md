@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/so5/ssh-client-wrapper/compare/v3.0.1...v3.1.0) (2026-10-14)
+
+
+### Features
+
+* shorten default ControlPath to <dir>/scw-%C ([#45](https://github.com/so5/ssh-client-wrapper/issues/45)) ([183b41f](https://github.com/so5/ssh-client-wrapper/commit/183b41fe11888f451d746328a1502a349af6390c))
+
 ## [3.0.1](https://github.com/so5/ssh-client-wrapper/compare/v3.0.0...v3.0.1) (2026-10-07)
 
 
