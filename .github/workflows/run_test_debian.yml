@@ -1,0 +1,85 @@
+name: run UT (debian)
+
+# Run the test suite inside Debian-based node containers so that the rsync/ssh
+# client versions under test vary:
+#   bullseye: rsync 3.2.3, bookworm: rsync 3.2.7, trixie: rsync 3.5.0
+# Required checks: the latest Debian (trixie) on every supported Node LTS.
+# Optional checks: older Debian releases, latest Node LTS only.
+#
+# Can be run locally with nektos/act, e.g.
+#   gh act pull_request -W .github/workflows/run_test_debian.yml --matrix debian:trixie --matrix node:24
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: test (${{ matrix.debian }}, node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    container: node:${{ matrix.node }}-${{ matrix.debian }}
+    services:
+      testbed:
+        image: naoso5/test-sshd
+      testbed2:
+        image: naoso5/test-sshd
+    env:
+      # inside a container job the services are reachable by their name
+      TEST_HOST: testbed
+      TEST_USER: testuser
+      TEST_PW: passw0rd
+      TEST_PORT: 22
+      TEST_HOST2: testbed2
+      TEST_USER2: testuser
+      TEST_PORT2: 22
+      TEST_HOST2_VERIFY: testbed2
+      TEST_PORT2_VERIFY: 22
+    strategy:
+      fail-fast: false
+      matrix:
+        debian: [trixie]
+        node: [22, 24]
+        include:
+          - debian: bookworm
+            node: 24
+          - debian: bullseye
+            node: 24
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test tools
+        run: |
+          if [ "${{ matrix.debian }}" = bullseye ]; then
+            # bullseye has left the main mirrors (EOL)
+            sed -i -E 's#(deb|security)\.debian\.org#archive.debian.org#' /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null || true
+            echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
+          fi
+          apt-get update
+          apt-get install -y --no-install-recommends rsync sshpass netcat-openbsd openssh-client
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          rsync --version | head -1
+          ssh -V
+          node --version
+      - name: Wait for SSH services
+        run: |
+          timeout 60 bash -c 'until nc -z testbed 22; do sleep 1; done'
+          timeout 60 bash -c 'until nc -z testbed2 22; do sleep 1; done'
+      - name: Setup SSH keys for testing
+        run: |
+          mkdir -p .test-ssh-keys
+          ssh-keygen -t rsa -b 2048 -f .test-ssh-keys/id_rsa -N "" -C "github-test-key"
+          for h in testbed testbed2; do
+            sshpass -p "$TEST_PW" ssh -o StrictHostKeyChecking=no testuser@$h \
+              "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys" < .test-ssh-keys/id_rsa.pub
+            ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa testuser@$h "echo $h OK"
+          done
+      - run: npm ci
+      - name: Run tests with SSH agent
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add .test-ssh-keys/id_rsa
+          export TEST_KEYFILE="$(pwd)/.test-ssh-keys/id_rsa"
+          npm run mocha
