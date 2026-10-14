@@ -2,9 +2,10 @@ name: run UT (debian)
 
 # Run the test suite inside Debian-based node containers so that the rsync/ssh
 # client versions under test vary:
-#   bullseye: rsync 3.2.3, bookworm: rsync 3.2.7, trixie: rsync 3.5.0
+#   bookworm: rsync 3.2.7, trixie: rsync 3.5.0
 # Required checks: the latest Debian (trixie) on every supported Node LTS.
-# Optional checks: older Debian releases, latest Node LTS only.
+# Optional checks: older Debian releases that are still supported, latest Node
+# LTS only. EOL releases (bullseye, Node 20 and older) are not tested.
 #
 # Can be run locally with nektos/act, e.g.
 #   gh act pull_request -W .github/workflows/run_test_debian.yml --matrix debian:trixie --matrix node:24
@@ -45,17 +46,10 @@ jobs:
         include:
           - debian: bookworm
             node: 24
-          - debian: bullseye
-            node: 24
     steps:
       - uses: actions/checkout@v4
       - name: Install test tools
         run: |
-          if [ "${{ matrix.debian }}" = bullseye ]; then
-            # bullseye has left the main mirrors (EOL)
-            sed -i -E 's#(deb|security)\.debian\.org#archive.debian.org#' /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null || true
-            echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
-          fi
           apt-get update
           apt-get install -y --no-install-recommends rsync sshpass netcat-openbsd openssh-client
           mkdir -p ~/.ssh
