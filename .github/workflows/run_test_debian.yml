@@ -70,7 +70,11 @@ jobs:
               "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys" < .test-ssh-keys/id_rsa.pub
             ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa testuser@$h "echo $h OK"
           done
-      - run: npm ci
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+          # node-pty needs its install script to fetch/build the native binary
+          npm rebuild node-pty-prebuilt-multiarch
       - name: Run tests with SSH agent
         run: |
           eval "$(ssh-agent -s)"
