@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/so5/ssh-client-wrapper/compare/v3.1.0...v3.1.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **rsync:** pass each recv source as its own host:path argument ([17883c9](https://github.com/so5/ssh-client-wrapper/commit/17883c918d266d88d3741334c9a1d2fd42ec60e4))
+
 # [3.1.0](https://github.com/so5/ssh-client-wrapper/compare/v3.0.1...v3.1.0) (2026-10-14)
 
 
