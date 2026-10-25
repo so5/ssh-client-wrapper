@@ -16,14 +16,17 @@ chai.use(chaiAsPromised);
 const sshout = sinon.stub();
 
 //testee
-import { sshExec, canConnect, disconnect } from "../lib/sshExec.js";
+import { sshExec, canConnect, disconnect } from "../../lib/sshExec.js";
 
 //test helpers
-import hostInfo from "./testUtil/hostInfo.js";
-import { clearRemoteTestFiles, clearLocalTestFiles, nonExisting } from "./testUtil/testFiles.js";
-import { send } from "../lib/rsyncExec.js";
+import hostInfo from "../testUtil/hostInfo.js";
+import { requireTestHosts } from "./guard.js";
+import { clearRemoteTestFiles, clearLocalTestFiles, nonExisting } from "../testUtil/testFiles.js";
+import { send } from "../../lib/rsyncExec.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+requireTestHosts();
 
 describe("test for ssh execution", function () {
   const rcfilePath = "/home/testuser/testrc";
@@ -33,7 +36,7 @@ describe("test for ssh execution", function () {
     await clearRemoteTestFiles(hostInfo);
   });
   before(async ()=>{
-    await send(hostInfo, [path.resolve(__dirname, "./testUtil/testrc")], rcfilePath, [], 0);
+    await send(hostInfo, [path.resolve(__dirname, "../testUtil/testrc")], rcfilePath, [], 0);
   });
   after(async ()=>{
     if (!process.env.TEST_KEEP_FILES) {
