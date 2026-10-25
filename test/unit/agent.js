@@ -23,7 +23,7 @@ import {
   resolveWellKnownDir,
   ensureAgentForHost,
   _internal
-} from "../lib/agent.js";
+} from "../../lib/agent.js";
 
 const origSpawn = _internal.spawn;
 const origExecFileP = _internal.execFileP;

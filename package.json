@@ -16,6 +16,8 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "mocha": "mocha --recursive test",
+    "test:unit": "mocha --recursive test/unit && echo \"NOTE: only unit tests were run. The integration tests (ssh, rsync) were NOT run: use npm run test:integration with test hosts\"",
+    "test:integration": "mocha --recursive test/integration",
     "lint": "eslint --fix ./",
     "test": "c8 --reporter=html --reporter=text mocha --recursive test",
     "coverage": "c8 report --reporter=text-lcov > coverage-report.lcov",
