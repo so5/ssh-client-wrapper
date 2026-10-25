@@ -1,4 +1,6 @@
 import path from "node:path";
+import os from "node:os";
+import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 process.on("unhandledRejection", console.dir);
@@ -23,6 +25,8 @@ import hostInfo from "../testUtil/hostInfo.js";
 import { requireTestHosts } from "./guard.js";
 import { clearRemoteTestFiles, clearLocalTestFiles, nonExisting } from "../testUtil/testFiles.js";
 import { send } from "../../lib/rsyncExec.js";
+import { getSshOption, sshCmd } from "../../lib/util.js";
+import { fork } from "../../lib/fork.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -198,6 +202,51 @@ describe("test for ssh execution", function () {
     it("should be rejected if port number is out of range(65536)", async ()=>{
       hostInfo2.port = 65536;
       return expect(canConnect(hostInfo2, 2)).to.be.rejectedWith("invalid port specified 65536");
+    });
+  });
+  describe("master connection which is gone without cleaning up", ()=>{
+    //the master ssh is killed. Its control socket is left, but nobody listens on it.
+    let dir;
+    let hostInfo3;
+    const killMaster = async (info)=>{
+      let output = "";
+      await fork(null, sshCmd, [...getSshOption(info), "-Ocheck"], 10, (data)=>{
+        output += data;
+      });
+      const pid = /pid=(\d+)/.exec(output);
+      expect(pid, "master ssh should be running").to.be.ok;
+      process.kill(Number(pid[1]), "SIGKILL");
+    };
+    beforeEach(async ()=>{
+      //own control socket directory so that other tests can not touch the master
+      dir = await fs.mkdtemp(path.join(os.tmpdir(), "scw-"));
+      hostInfo3 = { ...hostInfo, masterPty: null, ControlPersistDir: dir };
+      await sshExec(hostInfo3, "true", 0);
+      expect(hostInfo3.masterPty).to.be.ok;
+      await killMaster(hostInfo3);
+    });
+    afterEach(async ()=>{
+      await disconnect(hostInfo3);
+      await fs.rm(dir, { recursive: true, force: true });
+    });
+    it("disconnect should release the pty, which keeps the process alive", async ()=>{
+      await disconnect(hostInfo3);
+
+      expect(hostInfo3.masterPty).to.not.be.ok;
+    });
+    it("canConnect should not take the left socket for a running master", async ()=>{
+      const hostInfo4 = { ...hostInfo3, masterPty: null, password: "xxxx" };
+      delete hostInfo4.keyFile;
+      hostInfo4.sshOpt = ["-o", "IdentitiesOnly=yes", "-o", "PubkeyAuthentication=no", "-o", "PreferredAuthentications=password"];
+      let err = null;
+      try {
+        await canConnect(hostInfo4, 30);
+      } catch (e) {
+        err = e;
+      }
+
+      expect(err).to.be.an("error");
+      expect(err.code).to.equal("AUTH_FAILED");
     });
   });
   describe("#ssh-agent authentication", ()=>{
