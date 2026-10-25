@@ -1,7 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 process.on("unhandledRejection", console.dir);
@@ -26,7 +25,8 @@ import hostInfo from "../testUtil/hostInfo.js";
 import { requireTestHosts } from "./guard.js";
 import { clearRemoteTestFiles, clearLocalTestFiles, nonExisting } from "../testUtil/testFiles.js";
 import { send } from "../../lib/rsyncExec.js";
-import { getSshOption } from "../../lib/util.js";
+import { getSshOption, sshCmd } from "../../lib/util.js";
+import { fork } from "../../lib/fork.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -208,9 +208,12 @@ describe("test for ssh execution", function () {
     //the master ssh is killed. Its control socket is left, but nobody listens on it.
     let dir;
     let hostInfo3;
-    const killMaster = (info)=>{
-      const rt = spawnSync("ssh", [...getSshOption(info), "-Ocheck"], { encoding: "utf8" });
-      const pid = /pid=(\d+)/.exec(`${rt.stdout}${rt.stderr}`);
+    const killMaster = async (info)=>{
+      let output = "";
+      await fork(null, sshCmd, [...getSshOption(info), "-Ocheck"], 10, (data)=>{
+        output += data;
+      });
+      const pid = /pid=(\d+)/.exec(output);
       expect(pid, "master ssh should be running").to.be.ok;
       process.kill(Number(pid[1]), "SIGKILL");
     };
@@ -220,7 +223,7 @@ describe("test for ssh execution", function () {
       hostInfo3 = { ...hostInfo, masterPty: null, ControlPersistDir: dir };
       await sshExec(hostInfo3, "true", 0);
       expect(hostInfo3.masterPty).to.be.ok;
-      killMaster(hostInfo3);
+      await killMaster(hostInfo3);
     });
     afterEach(async ()=>{
       await disconnect(hostInfo3);
