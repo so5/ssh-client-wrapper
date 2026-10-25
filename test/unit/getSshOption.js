@@ -7,7 +7,7 @@ import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);
 
 //testee
-import { getSshOption } from "../lib/util.js";
+import { getSshOption } from "../../lib/util.js";
 
 describe("test for getSshOption", ()=>{
   const defaultValues = {
