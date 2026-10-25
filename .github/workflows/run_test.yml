@@ -19,6 +19,7 @@ jobs:
         ports:
           - 10023:22
     env:
+      TEST_HOST: localhost
       TEST_USER: testuser
       TEST_PW: passw0rd
       TEST_PORT: 10022

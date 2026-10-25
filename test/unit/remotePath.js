@@ -10,7 +10,7 @@ import {
   formatRemoteArg,
   buildExpandCommand,
   parseExpandOutput
-} from "../lib/remotePath.js";
+} from "../../lib/remotePath.js";
 
 describe("test remotePath", ()=>{
   describe("#hasLiteralRemoteArgs", ()=>{
