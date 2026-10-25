@@ -56,7 +56,7 @@ Creates a new SSH client instance.
     *   `host` (string): The hostname or IP address of the server.
     *   `user` (string): The username for authentication.
     *   `port` (number, optional): The port number. Defaults to 22.
-    *   `password` (string | Function, optional): The password for authentication, or a function that returns the password.
+    *   `password` (string | Function, optional): The password for authentication, or a function that returns the password. See [Wrong password](#wrong-password).
     *   `keyFile` (string, optional): The path to the private key file for key-based authentication.
     *   `passphrase` (string | Function, optional): The passphrase for the private key, or a function that returns it.
     *   `noStrictHostKeyChecking` (boolean, optional): If `true`, bypasses strict host key checking.
@@ -178,6 +178,15 @@ await srcHost.remoteToRemoteCopy(
 Checks if a connection to the remote host can be established.
 
 *   Returns: `Promise<boolean>` - Resolves with `true` on success.
+
+### Wrong password
+
+If the login is refused, the promise is rejected with an `Error` whose `message` is `Permission denied` and whose `code` is `AUTH_FAILED`. `host`, `user` and `port` tell which login failed.
+
+*   `password` / `passphrase` given as a **string**: ssh is asked to try only once (`-oNumberOfPasswordPrompts=1`), because sending the same wrong string again can not succeed (and may lock the account). The promise is rejected at once.
+*   `password` / `passphrase` given as a **function**: the function is called each time ssh asks (up to three times, the ssh default), so that it can ask the user again and return another value. If none of them is accepted the promise is rejected as above.
+
+Whether to ask the user again after an `AUTH_FAILED` is up to the application.
 
 ### `.disconnect()`
 Closes the master SSH connection to the remote host.

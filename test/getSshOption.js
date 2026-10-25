@@ -69,4 +69,29 @@ describe("test for getSshOption", ()=>{
   it("should not emit -oIdentityAgent when no agent is in play", ()=>{
     expect(getSshOption(defaultValues).join(" ")).to.not.match(/IdentityAgent/);
   });
+  describe("-oNumberOfPasswordPrompts", ()=>{
+    it("should ask only once if password is a string", ()=>{
+      const hostInfo = { ...defaultValues, password: "secret" };
+      expect(getSshOption(hostInfo)).to.include("-oNumberOfPasswordPrompts=1");
+    });
+    it("should ask only once if passphrase is a string", ()=>{
+      const hostInfo = { ...defaultValues, passphrase: "secret" };
+      expect(getSshOption(hostInfo)).to.include("-oNumberOfPasswordPrompts=1");
+    });
+    it("should ask only once if both are strings", ()=>{
+      const hostInfo = { ...defaultValues, password: "secret", passphrase: "secret2" };
+      expect(getSshOption(hostInfo)).to.include("-oNumberOfPasswordPrompts=1");
+    });
+    it("should keep the default if password is a function, because it can answer differently each time", ()=>{
+      const hostInfo = { ...defaultValues, password: async ()=>{ return "secret"; } };
+      expect(getSshOption(hostInfo).join(" ")).to.not.match(/NumberOfPasswordPrompts/);
+    });
+    it("should keep the default if passphrase is a function", ()=>{
+      const hostInfo = { ...defaultValues, password: "secret", passphrase: async ()=>{ return "secret2"; } };
+      expect(getSshOption(hostInfo).join(" ")).to.not.match(/NumberOfPasswordPrompts/);
+    });
+    it("should not emit it if there is no secret", ()=>{
+      expect(getSshOption(defaultValues).join(" ")).to.not.match(/NumberOfPasswordPrompts/);
+    });
+  });
 });
