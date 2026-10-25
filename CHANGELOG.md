@@ -1,3 +1,10 @@
+## [3.1.3](https://github.com/so5/ssh-client-wrapper/compare/v3.1.2...v3.1.3) (2026-10-25)
+
+
+### Bug Fixes
+
+* fail at once on a wrong fixed password and report AUTH_FAILED ([10378ff](https://github.com/so5/ssh-client-wrapper/commit/10378ff3d2726e15f30901dd9af1db3fcdd24069))
+
 ## [3.1.2](https://github.com/so5/ssh-client-wrapper/compare/v3.1.1...v3.1.2) (2026-10-25)
 
 
