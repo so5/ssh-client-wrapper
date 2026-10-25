@@ -149,6 +149,27 @@ describe("test rsync exec", function () {
         }))).to.have.members(["hoge"]);
       });
 
+      it("should expand $HOME in dst", async ()=>{
+        await send(hostInfo, [localFiles[0]], `$HOME/${remoteEmptyDir}/`, [], 0);
+
+        await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+      it("should expand ~ in dst", async ()=>{
+        await send(hostInfo, [localFiles[0]], `~/${remoteEmptyDir}/hoge`, [], 0);
+
+        await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["hoge"]);
+      });
+      it("should accept space escaped by backslash in dst and create the directory", async ()=>{
+        await send(hostInfo, [localFiles[0]], `${remoteEmptyDir}/sp\\ ace/dir/`, [], 0);
+
+        await sshExec(hostInfo, `ls "${remoteEmptyDir}/sp ace/dir"`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+      it("should reject dst which is expanded to multiple paths", ()=>{
+        return expect(send(hostInfo, [localFiles[0]], `${remoteEmptyDir}/a b/`, [], 0)).to.be.rejectedWith("dst must be expanded to exactly one path");
+      });
       it("should overwrite existing file", async ()=>{
         const target = path.posix.join(remoteEmptyDir, "hoge");
         await send(hostInfo, [localFiles[0]], target, [], 0);
@@ -379,6 +400,59 @@ describe("test rsync exec", function () {
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["piyo", "puyo", "foo"]);
+      });
+    });
+    describe("recieve from remote path which the remote shell has to evaluate", ()=>{
+      it("should expand $HOME in src", async ()=>{
+        await recv(hostInfo, [`$HOME/${remoteRoot}/foo`], path.resolve(localEmptyDir), [], 0);
+
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["foo"]);
+      });
+      it("should expand ~ in src", async ()=>{
+        await recv(hostInfo, [`~/${remoteRoot}/foo`], path.resolve(localEmptyDir), [], 0);
+
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["foo"]);
+      });
+      it("should leave wildcards to the remote side", async ()=>{
+        await recv(hostInfo, [`$HOME/${remoteRoot}/b*`], path.resolve(localEmptyDir), [], 0);
+
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["bar", "baz"]);
+      });
+      it("should accept space escaped by backslash", async ()=>{
+        await sshExec(hostInfo, `echo sp > "${remoteRoot}/sp ace"`);
+        await recv(hostInfo, [`${remoteRoot}/sp\\ ace`], path.resolve(localEmptyDir), [], 0);
+
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["sp ace"]);
+      });
+      it("should accept quoted space", async ()=>{
+        await sshExec(hostInfo, `echo sp > "${remoteRoot}/sp ace"`);
+        await recv(hostInfo, [`'${remoteRoot}/sp ace'`], path.resolve(localEmptyDir), [], 0);
+
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["sp ace"]);
+      });
+      it("should receive all expanded paths", async ()=>{
+        await recv(hostInfo, [`${remoteRoot}/foo ${remoteRoot}/bar`], path.resolve(localEmptyDir), [], 0);
+
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["foo", "bar"]);
+      });
+      it("should expand braces in src if the remote shell supports it", async function () {
+        const out = [];
+        await sshExec(hostInfo, "echo {a,b}", 0, (data)=>{
+          out.push(data);
+        });
+        if (!/a b/.test(out.join(""))) {
+          this.skip();
+        }
+        await recv(hostInfo, [`${remoteRoot}/{foo,bar}`], path.resolve(localEmptyDir), [], 0);
+
+        const rt2 = await fs.readdir(localEmptyDir);
+        expect(rt2).to.have.members(["foo", "bar"]);
       });
     });
     describe("recieve directory tree", ()=>{
