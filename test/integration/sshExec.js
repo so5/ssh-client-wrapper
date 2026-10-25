@@ -119,6 +119,53 @@ describe("test for ssh execution", function () {
     it("should be resolved with true", async ()=>{
       return expect(await canConnect(hostInfo2, 5)).to.be.true;
     });
+    describe("authentication failure", ()=>{
+      const passwordOnly = [
+        "-o", "IdentitiesOnly=yes",
+        "-o", "PubkeyAuthentication=no",
+        "-o", "PreferredAuthentications=password"
+      ];
+      const getError = async (hostInfo3)=>{
+        try {
+          await canConnect(hostInfo3, 30);
+        } catch (e) {
+          return e;
+        }
+        return null;
+      };
+      beforeEach(()=>{
+        delete hostInfo2.keyFile;
+        hostInfo2.sshOpt = passwordOnly;
+      });
+      //that ssh asks only once for a fixed password is tested in getSshOption.js
+      it("should be rejected with AUTH_FAILED if a fixed password is wrong", async ()=>{
+        hostInfo2.password = "xxxx";
+        const err = await getError(hostInfo2);
+
+        expect(err).to.be.an("error");
+        expect(err.message).to.equal("Permission denied");
+        expect(err.code).to.equal("AUTH_FAILED");
+        expect(err.host).to.equal(hostInfo.host);
+      });
+      it("should not leave the pty of the failed connection", async ()=>{
+        hostInfo2.password = "xxxx";
+        await getError(hostInfo2);
+
+        expect(hostInfo2.masterPty).to.not.be.ok;
+      });
+      it("should ask a password function every time ssh asks", async ()=>{
+        let calls = 0;
+        hostInfo2.password = async ()=>{
+          calls++;
+          return "xxxx";
+        };
+        const err = await getError(hostInfo2);
+
+        expect(err).to.be.an("error");
+        expect(err.code).to.equal("AUTH_FAILED");
+        expect(calls).to.be.above(1);
+      });
+    });
     it("should be rejected if user does not exist", async ()=>{
       hostInfo2.user = "xxxx";
       return expect(canConnect(hostInfo2, 2)).to.be.rejected;
