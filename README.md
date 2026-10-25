@@ -107,6 +107,17 @@ Downloads files or directories from the remote host using `rsync`.
 *   `replaceRetryableExitCodes` (boolean, optional): If `true`, `retryableExitCodes` replaces the built-in default instead of adding to it. Defaults to `false`.
 *   Returns: `Promise<void>`
 
+### Remote paths of `.send()` / `.recv()`
+
+A remote path (`dst` of `.send()`, `src` of `.recv()`) is interpreted by the login shell of the remote host, whatever the version or the implementation of the local `rsync` is:
+
+*   `~`, environment variables (`$HOME/work`), braces (`dir/{a,b}`; the remote shell must support them, e.g. bash), quotes (`'dir/a b'`) and backslash escapes (`dir/a\ b`) are expanded.
+*   A space which is neither quoted nor escaped separates two paths.
+*   Wildcards (`*`, `?`, `[...]`) are expanded by the remote side as usual.
+*   The destination of `.send()` must be expanded to exactly one path. Its directory is created if it does not exist.
+
+A path that consists only of letters, digits and `_ @ % + = : , . / -` and wildcards needs no expansion and costs no extra round trip. Otherwise the expansion is done by one extra command over the existing connection.
+
 ### Retry behavior for `.send()` / `.recv()`
 
 `.send()` and `.recv()` automatically retry (up to `hostInfo.maxRetry` times, default `3`, waiting `hostInfo.retryDuration` msec between attempts, default `1000`) when:
