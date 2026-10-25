@@ -1,3 +1,10 @@
+## [3.1.2](https://github.com/so5/ssh-client-wrapper/compare/v3.1.1...v3.1.2) (2026-10-25)
+
+
+### Bug Fixes
+
+* expand remote paths in scw instead of relying on rsync --old-args ([cf5c654](https://github.com/so5/ssh-client-wrapper/commit/cf5c654c1c698a6e6a4aaacd24c4830b443c262a)), closes [#50](https://github.com/so5/ssh-client-wrapper/issues/50)
+
 ## [3.1.1](https://github.com/so5/ssh-client-wrapper/compare/v3.1.0...v3.1.1) (2026-10-22)
 
 
