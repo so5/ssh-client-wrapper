@@ -24,11 +24,12 @@ import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);
 
 //testee
-import { checkRsyncVersion, send, recv, remoteToRemoteCopy } from "../lib/rsyncExec.js";
+import { checkRsyncVersion, send, recv, remoteToRemoteCopy } from "../../lib/rsyncExec.js";
 
 //test helpers
-import { sshExec, disconnect } from "../lib/sshExec.js";
-import hostInfo, { hostInfo2, hostInfo2Verify } from "./testUtil/hostInfo.js";
+import { sshExec, disconnect } from "../../lib/sshExec.js";
+import hostInfo, { hostInfo2, hostInfo2Verify } from "../testUtil/hostInfo.js";
+import { requireTestHosts } from "./guard.js";
 import {
   clearLocalTestFiles,
   clearRemoteTestFiles,
@@ -40,7 +41,7 @@ import {
   remoteRoot,
   remoteEmptyDir,
   remoteFiles
-} from "./testUtil/testFiles.js";
+} from "../testUtil/testFiles.js";
 
 //retryWrapper's built-in default (see resolveRetryableExitCodes/retryWrapper in lib) when hostInfo.maxRetry is not set
 const defaultMaxRetry = 3;
@@ -54,6 +55,8 @@ const formatLsOutput = (array)=>{
     return e !== "";
   });
 };
+
+requireTestHosts({ secondHost: true });
 
 //actual test start from here
 describe("test checkRsyncVersion", async ()=>{
@@ -513,7 +516,7 @@ describe("test rsync exec", function () {
     });
   });
   describe("#remoteToRemoteCopy", async ()=>{
-    //Use second host as destination - requires TEST_HOST2 to be set
+    //Use second host as destination - TEST_HOST2 is required (checked by requireTestHosts)
     const dstHostInfo = {
       get host() { return hostInfo2.host; },
       get user() { return hostInfo2.user; },
@@ -523,19 +526,17 @@ describe("test rsync exec", function () {
     const dstRemoteRoot = "ssh_testRemoteDstDir";
     const dstRemoteEmptyDir = `${dstRemoteRoot}/emptyDir`;
 
+    //every test starts from an empty destination, so cleaning up is done once at the end of the group
     beforeEach(async function() {
       //Create destination directories on second host
       await sshExec(hostInfo2Verify, `rm -rf ${dstRemoteRoot} && mkdir -p ${dstRemoteEmptyDir}`, 0);
     });
 
-    afterEach(async ()=>{
+    after(async ()=>{
       //Clean up destination directories on second host
       if (!process.env.TEST_KEEP_FILES) {
         await sshExec(hostInfo2Verify, `rm -rf ${dstRemoteRoot}`, 0);
       }
-    });
-
-    after(async ()=>{
       //Disconnect from second host
       await disconnect(hostInfo2Verify);
     });

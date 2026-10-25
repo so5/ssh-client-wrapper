@@ -7,7 +7,7 @@ import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);
 
 //testee
-import { sanityCheck } from "../lib/util.js";
+import { sanityCheck } from "../../lib/util.js";
 
 describe("test for sanityCheck", ()=>{
   const host = "testHostName";

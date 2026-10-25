@@ -211,3 +211,36 @@ If no agent can be used, or `ssh-add` fails, the wrapper silently falls back to 
 **Keyless / browser agents:** with no `keyFile`, set `identityAgent` to the socket of an already-populated agent (for example [`bssh-agent`](https://github.com/so5/browser-ssh-agent), which keeps the private key in a browser tab) and the wrapper will authenticate through it.
 
 **Windows:** an already-running agent (the OpenSSH Authentication Agent service, or a supplied `identityAgent`) is used, but the wrapper never spawns one; without a reachable agent it falls back to the legacy path.
+
+## Running the tests
+
+The tests are split into two groups:
+
+| command | what runs | needs test hosts |
+|---|---|---|
+| `npm run test:unit` | `test/unit`: option building, validation, agent handling, ... | no |
+| `npm run test:integration` | `test/integration`: real `ssh` and `rsync` against test hosts | yes |
+| `npm run mocha` | both | yes |
+| `npm test` | both, with coverage | yes |
+
+`npm run test:unit` prints a reminder that **the integration tests were not run**. A green unit run does not say anything about ssh or rsync.
+
+The integration tests check the test hosts first. If a required environment variable is missing, or a host can not be logged in, the whole run fails at once with a message that says what to check (it does not wait for timeouts of the tests).
+
+### Test hosts
+
+The easiest way is `./run_test_local.sh`. It starts two [`naoso5/test-sshd`](https://hub.docker.com/r/naoso5/test-sshd) containers with Docker Compose, installs a throw-away key, starts an ssh-agent, sets the variables below and runs `npm test`. (If you run it with a different `HOME`, keep the path short: the ssh-agent socket path is limited to about 100 characters.)
+
+To use your own hosts, set these environment variables:
+
+| variable | meaning |
+|---|---|
+| `TEST_HOST`, `TEST_PORT`, `TEST_USER` | the test host (required: `TEST_HOST`) |
+| `TEST_PW` or `TEST_KEYFILE` | password or private key of the test user (an ssh-agent also works) |
+| `TEST_HOST2`, `TEST_PORT2`, `TEST_USER2` | the second host used by `remoteToRemoteCopy`, **as seen from the first test host** (required: `TEST_HOST2`; `TEST_USER2` defaults to `TEST_USER`) |
+| `TEST_HOST2_VERIFY`, `TEST_PORT2_VERIFY` | the same second host, **as seen from the machine which runs the tests** (default: `TEST_HOST2`, `TEST_PORT2`) |
+| `TEST_KEEP_FILES` | if set, the files created on the test hosts are not removed |
+
+The two ways to name the second host differ when the hosts are Docker containers: the first container reaches the second one by its container name (`testbed2:22`), while the test runner reaches it through a published port (`localhost:4101`).
+
+The same tests run in GitHub Actions for Node.js 22/24 and for Debian (see `.github/workflows`). To run the Debian workflow locally, see the comment at the top of `run_test_debian.yml`.

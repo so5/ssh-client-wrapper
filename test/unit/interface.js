@@ -11,7 +11,7 @@ chai.use(sinonChai);
 chai.use(chaiAsPromised);
 
 //testee
-import SshClientWrapper from "../lib/index.js";
+import SshClientWrapper from "../../lib/index.js";
 
 const sshExec = sinon.stub();
 const canConnect = sinon.stub();
