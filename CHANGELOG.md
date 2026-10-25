@@ -1,3 +1,10 @@
+## [3.1.4](https://github.com/so5/ssh-client-wrapper/compare/v3.1.3...v3.1.4) (2026-10-25)
+
+
+### Bug Fixes
+
+* release the pty in disconnect() even if the master is gone ([2db5b7e](https://github.com/so5/ssh-client-wrapper/commit/2db5b7e0ce2984dde865ff180b2a086d6807f102))
+
 ## [3.1.3](https://github.com/so5/ssh-client-wrapper/compare/v3.1.2...v3.1.3) (2026-10-25)
 
 
