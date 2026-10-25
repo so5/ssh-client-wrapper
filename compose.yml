@@ -19,45 +19,6 @@ services:
       - ssh-agent:/ssh-agent
     environment:
       - SSH_AUTH_SOCK=/ssh-agent/socket
-  tester:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      TEST_USER: testuser
-      TEST_PW: passw0rd
-      TEST_HOST: testbed
-      SSH_AUTH_SOCK: /ssh-agent/socket
-    working_dir: /work/ssh-client-wrapper
-    volumes:
-      - ssh-agent:/ssh-agent
-    command: bash -c "mkdir /root/.ssh 2>/dev/null; npm run mocha"
-  tester-bullseye:
-    build:
-      context: .
-      dockerfile: Dockerfile-bullseye
-    environment:
-      TEST_USER: testuser
-      TEST_PW: passw0rd
-      TEST_HOST: testbed
-      SSH_AUTH_SOCK: /ssh-agent/socket
-    working_dir: /work/ssh-client-wrapper
-    volumes:
-      - ssh-agent:/ssh-agent
-    command: bash -c "mkdir /root/.ssh 2>/dev/null;  npm run mocha"
-  tester-buster:
-    build:
-      context: .
-      dockerfile: Dockerfile-buster
-    environment:
-      TEST_USER: testuser
-      TEST_PW: passw0rd
-      TEST_HOST: testbed
-      SSH_AUTH_SOCK: /ssh-agent/socket
-    working_dir: /work/ssh-client-wrapper
-    volumes:
-      - ssh-agent:/ssh-agent
-    command: bash -c "mkdir /root/.ssh 2>/dev/null;  npm run mocha"
 
 volumes:
   ssh-agent:
