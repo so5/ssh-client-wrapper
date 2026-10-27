@@ -119,16 +119,16 @@ jobs:
           # someone to update it. Proactively request the update ourselves.
           # 422 (already up to date / nothing to do) is fine, ignore it.
           #
-          # update-branch pushes a commit as github-actions, which (a) leaves the
-          # new head's workflows waiting for approval and (b) makes Dependabot
-          # refuse `@dependabot rebase` ("edited by someone other than
-          # Dependabot"). So for Dependabot PRs ask Dependabot to rebase instead.
-          if [ "$(gh pr view "$PR" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus)" = "BEHIND" ]; then
-            if [ "${{ github.event.pull_request.user.login }}" = "dependabot[bot]" ]; then
-              gh pr comment "$PR" --repo "$REPO" --body "@dependabot rebase" || true
-            else
-              gh api --method PUT "repos/$REPO/pulls/$PR/update-branch" || true
-            fi
+          # Dependabot PRs are left alone here: update-branch pushes a commit as
+          # github-actions, which leaves the new head's workflows waiting for
+          # approval and makes Dependabot refuse `@dependabot rebase`. They are
+          # rebased by unstick-behind-prs.yml, which asks Dependabot with a
+          # personal access token (a workflow triggered by Dependabot can not
+          # read the repository secrets, and `@dependabot rebase` is refused
+          # when it comes from github-actions).
+          if [ "${{ github.event.pull_request.user.login }}" != "dependabot[bot]" ] \
+            && [ "$(gh pr view "$PR" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus)" = "BEHIND" ]; then
+            gh api --method PUT "repos/$REPO/pulls/$PR/update-branch" || true
           fi
 
       - name: Enable GitHub native auto-merge
