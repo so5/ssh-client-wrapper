@@ -1,0 +1,95 @@
+name: run UT (gokrazy/rsync)
+
+# Run the integration tests with gokrazy/rsync (the engine of rsync4win) in place of rsync.
+# gokrazy/rsync does not support every option yet, so this job is optional: a failure here does not fail the pull request.
+# It is not a required check. The result tells how far the compatibility has come.
+# The tests with rsync itself are run by run_test.yml and run_test_debian.yml.
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: test (gokrazy/rsync, node ${{ matrix.node-version }})
+    continue-on-error: true
+    timeout-minutes: 20
+    services:
+      testbed:
+        image: naoso5/test-sshd
+        ports:
+          - 10022:22
+      testbed2:
+        image: naoso5/test-sshd
+        ports:
+          - 10023:22
+    env:
+      TEST_HOST: localhost
+      TEST_USER: testuser
+      TEST_PW: passw0rd
+      TEST_PORT: 10022
+      TEST_HOST2: testbed2
+      TEST_HOST2_VERIFY: localhost
+      TEST_USER2: testuser
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 10023
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [24.x]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Setup SSH keys for testing
+        run: |
+          mkdir -p .test-ssh-keys
+          ssh-keygen -t rsa -b 2048 -f .test-ssh-keys/id_rsa -N "" -C "github-test-key"
+          eval "$(ssh-agent -s)"
+          ssh-add .test-ssh-keys/id_rsa
+          # Remove old host keys
+          ssh-keygen -R '[localhost]:10022' 2>/dev/null || true
+          ssh-keygen -R '[localhost]:10023' 2>/dev/null || true
+      - name: Wait for SSH services
+        run: |
+          timeout 60 bash -c 'until nc -z localhost 10022; do sleep 1; done'
+          timeout 60 bash -c 'until nc -z localhost 10023; do sleep 1; done'
+      - name: Install SSH keys to containers
+        run: |
+          # Install to testbed (port 10022)
+          sshpass -p "$TEST_PW" ssh-copy-id -o StrictHostKeyChecking=no -p 10022 -i .test-ssh-keys/id_rsa.pub testuser@localhost || \
+          sshpass -p "$TEST_PW" ssh -o StrictHostKeyChecking=no -p 10022 testuser@localhost "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys" < .test-ssh-keys/id_rsa.pub
+          
+          # Install to testbed2 (port 10023)
+          sshpass -p "$TEST_PW" ssh-copy-id -o StrictHostKeyChecking=no -p 10023 -i .test-ssh-keys/id_rsa.pub testuser@localhost || \
+          sshpass -p "$TEST_PW" ssh -o StrictHostKeyChecking=no -p 10023 testuser@localhost "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys" < .test-ssh-keys/id_rsa.pub
+      - name: Verify SSH connections
+        run: |
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa -p 10022 testuser@localhost "echo 'testbed OK'"
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa -p 10023 testuser@localhost "echo 'testbed2 OK'"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Install gokrazy/rsync as rsync
+        run: |
+          GOBIN="$RUNNER_TEMP/gokrazy" go install github.com/gokrazy/rsync/cmd/gokr-rsync@v0.3.10
+          cp test/testUtil/gokrazy-rsync.sh "$RUNNER_TEMP/gokrazy/rsync"
+          echo "$RUNNER_TEMP/gokrazy" >> "$GITHUB_PATH"
+      - name: Show rsync
+        run: |
+          command -v rsync
+          rsync --version
+      - run: npm ci
+      - name: Run tests with SSH agent
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add .test-ssh-keys/id_rsa
+          export TEST_KEYFILE="$(pwd)/.test-ssh-keys/id_rsa"
+          npm run test:integration
+        env:
+          TEST_KEYFILE: ${{ github.workspace }}/.test-ssh-keys/id_rsa
