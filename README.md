@@ -254,4 +254,15 @@ To use your own hosts, set these environment variables:
 
 The two ways to name the second host differ when the hosts are Docker containers: the first container reaches the second one by its container name (`testbed2:22`), while the test runner reaches it through a published port (`localhost:4101`).
 
-The same tests run in GitHub Actions for Node.js 22/24 and for Debian (see `.github/workflows`). To run the Debian workflow locally, see the comment at the top of `run_test_debian.yml`.
+The same tests run in GitHub Actions for Node.js 22/24 and for Debian (see `.github/workflows`).
+
+#### Other rsync implementations
+
+The integration tests also run with [gokrazy/rsync](https://github.com/gokrazy/rsync), the engine of rsync4win (Windows), in place of rsync. This is an optional job (`run_test_gokrazy.yml`): gokrazy/rsync does not support every option yet, so a failure there does not fail a pull request. To run it locally, put `test/testUtil/gokrazy-rsync.sh` in `PATH` under the name `rsync`, with `gokr-rsync` installed (`go install github.com/gokrazy/rsync/cmd/gokr-rsync@latest`).
+
+What scw does for them:
+
+- A rsync which reports a version older than 3.2.4 (openrsync, gokrazy/rsync, rsync4win) lets the remote shell evaluate the remote path, so scw escapes it (see "Remote paths of .send()/.recv()").
+- gokrazy/rsync and rsync4win receive only the first of several remote sources, so `.recv()` runs them once per source.
+
+The tests emulate both with the installed rsync (`RSYNC_OLD_ARGS=1` makes rsync 3.2.4 or later behave like older ones), so that these code paths are tested without such an rsync. To run the Debian workflow locally, see the comment at the top of `run_test_debian.yml`.

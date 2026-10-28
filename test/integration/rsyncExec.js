@@ -589,6 +589,118 @@ describe("test rsync exec", function () {
       });
     });
   });
+  //rsync4win (gokrazy/rsync), openrsync and rsync < 3.2.4 pass a remote path to the remote shell,
+  //and gokrazy/rsync receives only the first of several remote sources.
+  //these are emulated with the installed rsync: it reports the version of the implementation to emulate
+  //and RSYNC_OLD_ARGS=1 makes rsync >= 3.2.4 pass the remote path to the remote shell (older ones always do).
+  const emulations = [
+    { name: "rsync which passes remote path to the remote shell (rsync < 3.2.4, openrsync)", version: { major: 2, minor: 6, patch: 9 } },
+    { name: "gokrazy/rsync (rsync4win)", version: { major: 0, minor: 3, patch: 10, implementation: "gokrazy" } }
+  ];
+  for (const { name, version } of emulations) {
+    describe(`emulation of ${name}`, ()=>{
+      const info = { ...hostInfo, rsyncVersion: version };
+      let oldArgs;
+      before(async function () {
+        //the emulation is done with rsync itself. it is meaningless if the installed rsync is an implementation of another project
+        if ((await checkRsyncVersion(3)).implementation) {
+          this.skip();
+        }
+        oldArgs = process.env.RSYNC_OLD_ARGS;
+        process.env.RSYNC_OLD_ARGS = "1";
+      });
+      after(()=>{
+        if (oldArgs === undefined) {
+          delete process.env.RSYNC_OLD_ARGS;
+        } else {
+          process.env.RSYNC_OLD_ARGS = oldArgs;
+        }
+      });
+      it("send: should expand $HOME in dst", async ()=>{
+        await send(info, [localFiles[0]], `$HOME/${remoteEmptyDir}/`, [], 0);
+
+        await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+      it("send: should expand ~ in dst", async ()=>{
+        await send(info, [localFiles[0]], `~/${remoteEmptyDir}/hoge`, [], 0);
+
+        await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["hoge"]);
+      });
+      it("send: should accept space escaped by backslash in dst", async ()=>{
+        await send(info, [localFiles[0]], String.raw`${remoteEmptyDir}/sp\ ace/dir/`, [], 0);
+
+        await sshExec(hostInfo, `ls "${remoteEmptyDir}/sp ace/dir"`, 0, output);
+        expect(formatLsOutput(rt)).to.have.members(["foo"]);
+      });
+      it("recv: should expand $HOME and ~ in src", async ()=>{
+        await recv(info, [`$HOME/${remoteRoot}/foo`, `~/${remoteRoot}/bar`], path.resolve(localEmptyDir), [], 0);
+
+        expect(await fs.readdir(localEmptyDir)).to.have.members(["foo", "bar"]);
+      });
+      it("recv: should leave wildcards to the remote side", async ()=>{
+        await recv(info, [`$HOME/${remoteRoot}/b*`], path.resolve(localEmptyDir), [], 0);
+
+        expect(await fs.readdir(localEmptyDir)).to.have.members(["bar", "baz"]);
+      });
+      it("recv: should accept space escaped by backslash and quoted space", async ()=>{
+        await sshExec(hostInfo, `echo sp > "${remoteRoot}/sp ace"`);
+        await recv(info, [String.raw`${remoteRoot}/sp\ ace`], path.resolve(localEmptyDir), [], 0);
+        expect(await fs.readdir(localEmptyDir)).to.have.members(["sp ace"]);
+
+        await fs.remove(path.join(localEmptyDir, "sp ace"));
+        await recv(info, [`'${remoteRoot}/sp ace'`], path.resolve(localEmptyDir), [], 0);
+        expect(await fs.readdir(localEmptyDir)).to.have.members(["sp ace"]);
+      });
+      it("recv: should receive all expanded paths", async ()=>{
+        await recv(info, [`${remoteRoot}/foo ${remoteRoot}/bar`], path.resolve(localEmptyDir), [], 0);
+
+        expect(await fs.readdir(localEmptyDir)).to.have.members(["foo", "bar"]);
+      });
+      it("recv: should receive multiple sources", async ()=>{
+        await recv(info, [`${remoteRoot}/foo`, `${remoteRoot}/bar`, `${remoteRoot}/baz`], path.resolve(localEmptyDir), [], 0);
+
+        expect(await fs.readdir(localEmptyDir)).to.have.members(["foo", "bar", "baz"]);
+      });
+      it("recv: should receive multiple sources into a directory which does not exist yet", async ()=>{
+        const dst = path.join(localEmptyDir, "new", "dir");
+        await recv(info, [`${remoteRoot}/foo`, `${remoteRoot}/hoge/*`], dst, [], 0);
+
+        expect(await fs.readdir(dst)).to.have.members(["foo", "piyo", "puyo", "poyo"]);
+      });
+      it("recv: should fail if one of the sources does not exist", ()=>{
+        return expect(recv(info, [`${remoteRoot}/foo`, `${remoteRoot}/ARSSH_nonExisting`], path.resolve(localEmptyDir), [], 0)).to.be.rejected;
+      });
+    });
+  }
+  //these options are passed through to rsync. what the implementations other than rsync do with them is checked in the gokrazy/rsync job.
+  describe("rsync options", ()=>{
+    it("send: --dry-run should not transfer anything", async ()=>{
+      await send(hostInfo, [localFiles[0], localFiles[1]], `${remoteEmptyDir}/`, ["--dry-run"], 0);
+
+      await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
+      expect(formatLsOutput(rt)).to.be.empty;
+    });
+    it("send: --delete should remove files which the source does not have", async ()=>{
+      await sshExec(hostInfo, `touch ${remoteEmptyDir}/extra`);
+      await send(hostInfo, [`${localRoot}/`], `${remoteEmptyDir}/`, ["--delete"], 0);
+
+      await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
+      expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
+    });
+    it("recv: --dry-run should not transfer anything", async ()=>{
+      await recv(hostInfo, [`${remoteRoot}/foo`], path.resolve(localEmptyDir), ["--dry-run"], 0);
+
+      expect(await fs.readdir(localEmptyDir)).to.be.empty;
+    });
+    it("recv: --delete should remove files which the source does not have", async ()=>{
+      await fs.writeFile(path.join(localEmptyDir, "extra"), "extra\n");
+      await recv(hostInfo, [`${remoteRoot}/`], path.resolve(localEmptyDir), ["--delete"], 0);
+
+      expect(await fs.readdir(localEmptyDir)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
+    });
+  });
   describe("#remoteToRemoteCopy", async ()=>{
     //Use second host as destination - TEST_HOST2 is required (checked by requireTestHosts)
     const dstHostInfo = {
