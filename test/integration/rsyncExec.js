@@ -629,7 +629,7 @@ describe("test rsync exec", function () {
         expect(formatLsOutput(rt)).to.have.members(["hoge"]);
       });
       it("send: should accept space escaped by backslash in dst", async ()=>{
-        await send(info, [localFiles[0]], `${remoteEmptyDir}/sp\\ ace/dir/`, [], 0);
+        await send(info, [localFiles[0]], String.raw`${remoteEmptyDir}/sp\ ace/dir/`, [], 0);
 
         await sshExec(hostInfo, `ls "${remoteEmptyDir}/sp ace/dir"`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo"]);
@@ -646,7 +646,7 @@ describe("test rsync exec", function () {
       });
       it("recv: should accept space escaped by backslash and quoted space", async ()=>{
         await sshExec(hostInfo, `echo sp > "${remoteRoot}/sp ace"`);
-        await recv(info, [`${remoteRoot}/sp\\ ace`], path.resolve(localEmptyDir), [], 0);
+        await recv(info, [String.raw`${remoteRoot}/sp\ ace`], path.resolve(localEmptyDir), [], 0);
         expect(await fs.readdir(localEmptyDir)).to.have.members(["sp ace"]);
 
         await fs.remove(path.join(localEmptyDir, "sp ace"));

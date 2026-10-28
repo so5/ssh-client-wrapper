@@ -77,14 +77,21 @@ jobs:
           go-version: stable
       - name: Install gokrazy/rsync as rsync
         run: |
-          GOBIN="$RUNNER_TEMP/gokrazy" go install github.com/gokrazy/rsync/cmd/gokr-rsync@v0.3.10
+          # build the tagged source with its go.sum (-mod=readonly) so that the dependencies are fixed
+          git clone --quiet --depth 1 --branch v0.3.10 https://github.com/gokrazy/rsync "$RUNNER_TEMP/gokrazy-src"
+          mkdir -p "$RUNNER_TEMP/gokrazy"
+          (cd "$RUNNER_TEMP/gokrazy-src" && go build -mod=readonly -o "$RUNNER_TEMP/gokrazy/gokr-rsync" ./cmd/gokr-rsync)
           cp test/testUtil/gokrazy-rsync.sh "$RUNNER_TEMP/gokrazy/rsync"
           echo "$RUNNER_TEMP/gokrazy" >> "$GITHUB_PATH"
       - name: Show rsync
         run: |
           command -v rsync
           rsync --version
-      - run: npm ci
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+          # node-pty needs its install script to fetch/build the native binary
+          npm rebuild node-pty-prebuilt-multiarch
       - name: Run tests with SSH agent
         run: |
           eval "$(ssh-agent -s)"
