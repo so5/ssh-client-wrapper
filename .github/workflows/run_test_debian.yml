@@ -74,7 +74,7 @@ jobs:
         run: |
           npm ci --ignore-scripts
           # node-pty needs its install script to fetch/build the native binary
-          npm rebuild node-pty-prebuilt-multiarch
+          npm rebuild node-pty
       - name: Run tests with SSH agent
         run: |
           eval "$(ssh-agent -s)"
