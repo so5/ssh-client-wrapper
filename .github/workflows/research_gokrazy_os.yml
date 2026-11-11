@@ -9,6 +9,7 @@ on:
       - research/gokrazy-cross-os
 env:
   GOKRAZY_VERSION: v0.3.10
+  GH_TOKEN: ${{ github.token }}
 jobs:
   linux:
     name: linux (docker sshd)
