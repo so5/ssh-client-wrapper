@@ -43,8 +43,11 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/gz" "$RUNNER_TEMP/bin"
           cd "$RUNNER_TEMP/gz"
-          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p rsync_Linux_x86_64.tar.gz -p checksums.txt
-          grep ' rsync_Linux_x86_64.tar.gz$' checksums.txt | sha256sum -c -
+          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p rsync_Linux_x86_64.tar.gz
+          # upstream publishes no checksums.txt: use the digest which GitHub computes for each release asset
+          want=$(gh api "repos/gokrazy/rsync/releases/tags/$GOKRAZY_VERSION" -q '.assets[]|select(.name=="rsync_Linux_x86_64.tar.gz").digest')
+          echo "$want"
+          echo "${want#sha256:}  rsync_Linux_x86_64.tar.gz" | sha256sum -c -
           tar xzf rsync_Linux_x86_64.tar.gz
           cp gokr-rsync "$RUNNER_TEMP/bin/"
           cp "$GITHUB_WORKSPACE/test/testUtil/gokrazy-rsync.sh" "$RUNNER_TEMP/bin/rsync"
@@ -115,9 +118,11 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/gz" "$RUNNER_TEMP/bin"
           cd "$RUNNER_TEMP/gz"
-          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p "${{ matrix.asset }}" -p checksums.txt
+          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p "${{ matrix.asset }}"
           file "${{ matrix.asset }}"
-          grep " ${{ matrix.asset }}\$" checksums.txt | shasum -a 256 -c - || echo "checksum of the dmg is not listed or differs"
+          want=$(gh api "repos/gokrazy/rsync/releases/tags/$GOKRAZY_VERSION" -q '.assets[]|select(.name=="${{ matrix.asset }}").digest')
+          echo "$want"
+          echo "${want#sha256:}  ${{ matrix.asset }}" | shasum -a 256 -c -
           hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "${{ matrix.asset }}"
           find "$RUNNER_TEMP/dmg" -maxdepth 2
           cp "$(find "$RUNNER_TEMP/dmg" -name gokr-rsync -type f | head -1)" "$RUNNER_TEMP/bin/gokr-rsync"
@@ -128,11 +133,11 @@ jobs:
           chmod +x "$RUNNER_TEMP/bin/rsync"
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Show system rsync, install rsync 3.x from homebrew
+      - name: Show system rsync, install rsync 3.x from homebrew (remote = homebrew only)
         run: |
           /usr/bin/rsync --version | head -2
-          brew install rsync
-          "$(brew --prefix)/bin/rsync" --version | head -1
+          if [ "${{ matrix.remote }}" = homebrew ]; then brew install rsync; fi
+          command -v rsync; rsync --version | head -1
       - name: Start two sshd as the runner user
         run: |
           D="$RUNNER_TEMP/sshd"; mkdir -p "$D" .test-ssh-keys
@@ -155,7 +160,7 @@ jobs:
             env -i PATH="$RPATH" /usr/sbin/sshd -f "$D/sshd_$p.conf" -E "$D/sshd_$p.log"
           done
           sleep 2
-          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa -p 10022 "$USER@localhost" 'echo ok; command -v rsync; rsync --version | head -1'
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa -p 10022 "$USER@localhost" 'echo ok; command -v rsync; rsync --version | head -2'
       - name: Install dependencies
         run: |
           npm ci --ignore-scripts
@@ -202,13 +207,23 @@ jobs:
           ls /c/Windows/System32/OpenSSH || true
           powershell -Command "Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'" || true
           powershell -Command "Get-Service | Where-Object Name -like '*ssh*'" || true
+      - name: Try to install a WSL distribution (WSL 1, no virtualization needed)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          wsl --set-default-version 1
+          wsl --install --no-launch -d Ubuntu-24.04
+          wsl -l -v
+          wsl -d Ubuntu-24.04 -u root -- sh -c "uname -a; apt-get --version | head -1"
       - name: Released gokr-rsync
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/gz" "$RUNNER_TEMP/bin"
           cd "$RUNNER_TEMP/gz"
-          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p rsync_Windows_x86_64.zip -p checksums.txt
-          grep ' rsync_Windows_x86_64.zip$' checksums.txt | sha256sum -c -
+          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p rsync_Windows_x86_64.zip
+          want=$(gh api "repos/gokrazy/rsync/releases/tags/$GOKRAZY_VERSION" -q '.assets[]|select(.name=="rsync_Windows_x86_64.zip").digest')
+          echo "$want"
+          echo "${want#sha256:}  rsync_Windows_x86_64.zip" | sha256sum -c -
           unzip -o rsync_Windows_x86_64.zip
           cp gokr-rsync.exe "$RUNNER_TEMP/bin/"
           "$RUNNER_TEMP/bin/gokr-rsync.exe" --version

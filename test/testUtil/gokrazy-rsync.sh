@@ -7,4 +7,9 @@ if [ "$1" = "--version" ]; then
   echo "rsync  version ${version:-0.0.0}  (gokrazy/rsync)"
   exit 0
 fi
+# research only: gokrazy/rsync rejects --copy-unsafe-links (gokrazy/rsync#45), which ssh-client-wrapper always passes.
+for a; do
+  shift
+  [ "$a" = --copy-unsafe-links ] || set -- "$@" "$a"
+done
 exec gokr-rsync "$@"
