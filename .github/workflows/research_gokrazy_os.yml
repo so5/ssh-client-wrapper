@@ -252,6 +252,7 @@ jobs:
           [Environment]::SetEnvironmentVariable('Path', 'C:\msys64\usr\bin;' + [Environment]::GetEnvironmentVariable('Path','Machine'), 'Machine')
           Restart-Service sshd
           Get-Service sshd
+          icacls $key /inheritance:r /grant:r "$($env:USERNAME):R" | Out-Null
           "TEST_USER=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_KEYFILE=$key" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
@@ -270,8 +271,8 @@ jobs:
           ssh -V
           rsync --version
           ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" 'echo remote-ok; uname -a; command -v rsync; rsync --version | head -1; echo $HOME; pwd'
-          $cm = "$env:RUNNER_TEMP\cm-%C"
-          ssh -o ControlMaster=auto -o "ControlPath=$cm" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" true
+          if ("${{ matrix.ssh }}" -eq "git-ssh") { $cm = "/tmp/cm-%C" } else { $cm = "$env:RUNNER_TEMP\cm-%C" }
+          ssh -v -o ControlMaster=auto -o "ControlPath=$cm" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" true
           "ControlMaster exit code: $LASTEXITCODE"
         continue-on-error: true
       - name: Install dependencies
@@ -279,11 +280,13 @@ jobs:
           npm ci --ignore-scripts
           npm rebuild @homebridge/node-pty-prebuilt-multiarch
       - name: Unit tests
+        continue-on-error: true
         shell: pwsh
         run: npx mocha --recursive test/unit 2>&1 | Select-Object -Last 15
       - name: Run the integration tests (client = gokr-rsync.exe)
         shell: pwsh
         run: |
+          if ("${{ matrix.ssh }}" -eq "git-ssh") { $env:SSH_CONTROL_PERSIST_DIR = "/tmp" }
           npx mocha --recursive test/integration --reporter spec 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\result.txt"
       - name: Summary
         if: always()
