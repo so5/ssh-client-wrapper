@@ -40,11 +40,11 @@
     "@semantic-release/npm": "^13.1.0"
   },
   "dependencies": {
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.15.0",
     "ajv": "^8.17.1",
     "ajv-keywords": "^5.1.0",
     "debug": "^4.4.3",
-    "glob": "^13.0.0",
-    "node-pty-prebuilt-multiarch": "^0.10.1-pre.5"
+    "glob": "^13.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

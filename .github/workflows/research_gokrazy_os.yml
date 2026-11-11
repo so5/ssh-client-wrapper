@@ -66,7 +66,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci --ignore-scripts
-          npm rebuild node-pty-prebuilt-multiarch
+          npm rebuild @homebridge/node-pty-prebuilt-multiarch
       - name: Show the rsync
         run: |
           command -v rsync
@@ -164,7 +164,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci --ignore-scripts
-          npm rebuild node-pty-prebuilt-multiarch
+          npm rebuild @homebridge/node-pty-prebuilt-multiarch
       - name: Run the integration tests (client = gokr-rsync)
         run: |
           export PATH="$RUNNER_TEMP/bin:$PATH"
@@ -186,54 +186,102 @@ jobs:
         if: always()
         run: tail -n 30 "$RUNNER_TEMP/sshd/sshd_10022.log" || true
 
-  windows-probe:
-    name: windows (what is available on the runner)
+  windows:
+    name: windows (sshd of the runner as the remote, ssh = ${{ matrix.ssh }})
     runs-on: windows-latest
     continue-on-error: true
-    timeout-minutes: 20
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        ssh: [win32-openssh, git-ssh]
+    env:
+      TEST_HOST: localhost
+      TEST_HOST2: localhost
+      TEST_PORT: 22
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 22
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
-      - name: Environment
-        shell: bash
-        run: |
-          ssh -V
-          where ssh || true
-          wsl --status || true
-          wsl -l -v || true
-          docker version || true
-          ls /c/Windows/System32/OpenSSH || true
-          powershell -Command "Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'" || true
-          powershell -Command "Get-Service | Where-Object Name -like '*ssh*'" || true
-      - name: Try to install a WSL distribution (WSL 1, no virtualization needed)
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          wsl --set-default-version 1
-          wsl --install --no-launch -d Ubuntu-24.04
-          wsl -l -v
-          wsl -d Ubuntu-24.04 -u root -- sh -c "uname -a; apt-get --version | head -1"
-      - name: Released gokr-rsync
-        shell: bash
+      - name: Released gokr-rsync, with a rsync.cmd in front of it
         run: |
           mkdir -p "$RUNNER_TEMP/gz" "$RUNNER_TEMP/bin"
           cd "$RUNNER_TEMP/gz"
           gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p rsync_Windows_x86_64.zip
           want=$(gh api "repos/gokrazy/rsync/releases/tags/$GOKRAZY_VERSION" -q '.assets[]|select(.name=="rsync_Windows_x86_64.zip").digest')
-          echo "$want"
           echo "${want#sha256:}  rsync_Windows_x86_64.zip" | sha256sum -c -
           unzip -o rsync_Windows_x86_64.zip
           cp gokr-rsync.exe "$RUNNER_TEMP/bin/"
-          "$RUNNER_TEMP/bin/gokr-rsync.exe" --version
-          powershell -Command "Get-AuthenticodeSignature '$RUNNER_TEMP/bin/gokr-rsync.exe' | Format-List"
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - name: scw on Windows (unit tests, ControlMaster of the native ssh)
-        shell: bash
+          # research only: the version line which scw parses, and no --copy-unsafe-links (gokrazy/rsync#45)
+          cat > "$RUNNER_TEMP/bin/rsync.cmd" <<'CMD'
+          @echo off
+          if "%~1"=="--version" (
+            echo rsync  version 0.3.10  ^(gokrazy/rsync^)
+            exit /b 0
+          )
+          set "ARGS=%*"
+          set "ARGS=%ARGS:--copy-unsafe-links=%"
+          "%~dp0gokr-rsync.exe" %ARGS%
+          exit /b %ERRORLEVEL%
+          CMD
+          sed -i 's/^          //' "$RUNNER_TEMP/bin/rsync.cmd"
+          cat "$RUNNER_TEMP/bin/rsync.cmd"
+      - name: Install rsync 3.x for the remote side (MSYS2)
+        run: |
+          ls /c/msys64/usr/bin/pacman.exe
+          /c/msys64/usr/bin/pacman.exe -S --noconfirm rsync 2>&1 | tail -3
+          /c/msys64/usr/bin/rsync.exe --version | head -1
+      - name: Prepare the sshd of the runner
+        shell: pwsh
+        run: |
+          $key = "$env:RUNNER_TEMP\id_rsa"
+          ssh-keygen -t rsa -b 2048 -N '""' -f $key -C github-test-key
+          # the runner user is an administrator: the key goes to administrators_authorized_keys
+          Copy-Item "$key.pub" C:\ProgramData\ssh\administrators_authorized_keys -Force
+          icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+          # remote commands run in the bash of MSYS2, which has rsync and the unix tools the tests use
+          New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value C:\msys64\usr\bin\bash.exe -PropertyType String -Force
+          [Environment]::SetEnvironmentVariable('Path', 'C:\msys64\usr\bin;' + [Environment]::GetEnvironmentVariable('Path','Machine'), 'Machine')
+          Restart-Service sshd
+          Get-Service sshd
+          "TEST_USER=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_KEYFILE=$key" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - name: Choose the ssh and check the remote
+        run: |
+          if [ "${{ matrix.ssh }}" = win32-openssh ]; then
+            echo "C:\\Windows\\System32\\OpenSSH" >> "$GITHUB_PATH"
+          fi
+          echo "$RUNNER_TEMP\\bin" >> "$GITHUB_PATH"
+      - name: Show the tools the tests will use
+        run: |
+          which ssh rsync || where ssh rsync
+          ssh -V
+          rsync --version
+          KEY=$(cygpath -u "$TEST_KEYFILE" 2>/dev/null || echo "$TEST_KEYFILE")
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$TEST_KEYFILE" "$TEST_USER@localhost" 'echo remote-ok; uname -a; command -v rsync; rsync --version | head -1; echo $HOME; pwd'
+          ssh -o ControlMaster=auto -o ControlPath="$RUNNER_TEMP/cm-%C" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i "$TEST_KEYFILE" "$TEST_USER@localhost" true 2>&1 | head -5 || true
+      - name: Install dependencies
         run: |
           npm ci --ignore-scripts
-          npm rebuild node-pty-prebuilt-multiarch
-          npx mocha --recursive test/unit 2>&1 | tail -n 40
-          ssh -o ControlMaster=auto -o ControlPath="$RUNNER_TEMP/cm-%C" -o StrictHostKeyChecking=no -o BatchMode=yes localhost true 2>&1 | head -5 || true
+          npm rebuild @homebridge/node-pty-prebuilt-multiarch
+      - name: Unit tests
+        run: npx mocha --recursive test/unit 2>&1 | tail -n 15
+      - name: Run the integration tests (client = gokr-rsync.exe)
+        run: |
+          npx mocha --recursive test/integration --reporter spec 2>&1 | tee "$RUNNER_TEMP/result.txt"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### windows, ssh = ${{ matrix.ssh }}, remote = sshd of the runner + MSYS2 rsync, gokrazy/rsync ${{ env.GOKRAZY_VERSION }}'
+            echo '```'
+            grep -E '^\s+[0-9]+ (passing|failing|pending)' "$RUNNER_TEMP/result.txt" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
