@@ -254,35 +254,41 @@ jobs:
           "TEST_USER=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_KEYFILE=$key" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-      - name: Choose the ssh and check the remote
+      - name: Choose the ssh
         run: |
           if [ "${{ matrix.ssh }}" = win32-openssh ]; then
             echo "C:\\Windows\\System32\\OpenSSH" >> "$GITHUB_PATH"
+          else
+            echo "C:\\Program Files\\Git\\usr\\bin" >> "$GITHUB_PATH"
           fi
           echo "$RUNNER_TEMP\\bin" >> "$GITHUB_PATH"
       - name: Show the tools the tests will use
+        shell: pwsh
         run: |
-          which ssh rsync || where ssh rsync
+          Get-Command ssh, rsync | Format-Table Name, Source
           ssh -V
           rsync --version
-          KEY=$(cygpath -u "$TEST_KEYFILE" 2>/dev/null || echo "$TEST_KEYFILE")
-          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$TEST_KEYFILE" "$TEST_USER@localhost" 'echo remote-ok; uname -a; command -v rsync; rsync --version | head -1; echo $HOME; pwd'
-          ssh -o ControlMaster=auto -o ControlPath="$RUNNER_TEMP/cm-%C" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i "$TEST_KEYFILE" "$TEST_USER@localhost" true 2>&1 | head -5 || true
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" 'echo remote-ok; uname -a; command -v rsync; rsync --version | head -1; echo $HOME; pwd'
+          $cm = "$env:RUNNER_TEMP\cm-%C"
+          ssh -o ControlMaster=auto -o "ControlPath=$cm" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" true
+          "ControlMaster exit code: $LASTEXITCODE"
+        continue-on-error: true
       - name: Install dependencies
         run: |
           npm ci --ignore-scripts
           npm rebuild @homebridge/node-pty-prebuilt-multiarch
       - name: Unit tests
-        run: npx mocha --recursive test/unit 2>&1 | tail -n 15
+        shell: pwsh
+        run: npx mocha --recursive test/unit 2>&1 | Select-Object -Last 15
       - name: Run the integration tests (client = gokr-rsync.exe)
+        shell: pwsh
         run: |
-          npx mocha --recursive test/integration --reporter spec 2>&1 | tee "$RUNNER_TEMP/result.txt"
+          npx mocha --recursive test/integration --reporter spec 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\result.txt"
       - name: Summary
         if: always()
+        shell: pwsh
         run: |
-          {
-            echo '### windows, ssh = ${{ matrix.ssh }}, remote = sshd of the runner + MSYS2 rsync, gokrazy/rsync ${{ env.GOKRAZY_VERSION }}'
-            echo '```'
-            grep -E '^\s+[0-9]+ (passing|failing|pending)' "$RUNNER_TEMP/result.txt" || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          "### windows, ssh = ${{ matrix.ssh }}, remote = sshd of the runner + MSYS2 rsync, gokrazy/rsync ${{ env.GOKRAZY_VERSION }}" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          '```' | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          Select-String -Path "$env:RUNNER_TEMP\result.txt" -Pattern '^\s+\d+ (passing|failing|pending)' | ForEach-Object { $_.Line } | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          '```' | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
