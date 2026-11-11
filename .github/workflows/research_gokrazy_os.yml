@@ -1,0 +1,224 @@
+name: research gokrazy/rsync on each OS
+
+# Research only (branch research/gokrazy-cross-os): does ssh-client-wrapper work with the released gokrazy/rsync binaries on Linux, macOS and Windows?
+# Not part of the pull request checks. Run it by hand (workflow_dispatch) or by pushing to this branch.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/gokrazy-cross-os
+env:
+  GOKRAZY_VERSION: v0.3.10
+jobs:
+  linux:
+    name: linux (docker sshd)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 25
+    services:
+      testbed:
+        image: naoso5/test-sshd
+        ports:
+          - 10022:22
+      testbed2:
+        image: naoso5/test-sshd
+        ports:
+          - 10023:22
+    env:
+      TEST_HOST: localhost
+      TEST_USER: testuser
+      TEST_PW: passw0rd
+      TEST_PORT: 10022
+      TEST_HOST2: testbed2
+      TEST_HOST2_VERIFY: localhost
+      TEST_USER2: testuser
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 10023
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Install the released gokr-rsync as rsync
+        run: |
+          mkdir -p "$RUNNER_TEMP/gz" "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP/gz"
+          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p rsync_Linux_x86_64.tar.gz -p checksums.txt
+          grep ' rsync_Linux_x86_64.tar.gz$' checksums.txt | sha256sum -c -
+          tar xzf rsync_Linux_x86_64.tar.gz
+          cp gokr-rsync "$RUNNER_TEMP/bin/"
+          cp "$GITHUB_WORKSPACE/test/testUtil/gokrazy-rsync.sh" "$RUNNER_TEMP/bin/rsync"
+          chmod +x "$RUNNER_TEMP/bin/rsync"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Setup ssh keys
+        run: |
+          mkdir -p .test-ssh-keys
+          ssh-keygen -t rsa -b 2048 -f .test-ssh-keys/id_rsa -N "" -C "github-test-key"
+          timeout 60 bash -c 'until nc -z localhost 10022 && nc -z localhost 10023; do sleep 1; done'
+          for p in 10022 10023; do
+            sshpass -p "$TEST_PW" ssh -o StrictHostKeyChecking=no -p $p testuser@localhost "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys" < .test-ssh-keys/id_rsa.pub
+          done
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild node-pty-prebuilt-multiarch
+      - name: Show the rsync
+        run: |
+          command -v rsync
+          rsync --version
+          gokr-rsync --version
+      - name: Run the integration tests
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add .test-ssh-keys/id_rsa
+          export TEST_KEYFILE="$(pwd)/.test-ssh-keys/id_rsa"
+          npx mocha --recursive test/integration --reporter spec 2>&1 | tee "$RUNNER_TEMP/result.txt"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### linux, gokrazy/rsync ${{ env.GOKRAZY_VERSION }}'
+            echo '```'
+            grep -E '^\s+[0-9]+ (passing|failing|pending)' "$RUNNER_TEMP/result.txt" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  macos:
+    name: macos (local sshd, remote rsync = ${{ matrix.remote }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            asset: rsync_Mac_Apple_Silicon.zip.dmg
+            remote: homebrew
+          - os: macos-latest
+            asset: rsync_Mac_Apple_Silicon.zip.dmg
+            remote: system
+    env:
+      TEST_HOST: localhost
+      TEST_HOST2: localhost
+      TEST_PORT: 10022
+      TEST_PORT2: 10023
+      TEST_PORT2_VERIFY: 10023
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Install the released gokr-rsync (the notarized dmg)
+        run: |
+          mkdir -p "$RUNNER_TEMP/gz" "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP/gz"
+          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p "${{ matrix.asset }}" -p checksums.txt
+          file "${{ matrix.asset }}"
+          grep " ${{ matrix.asset }}\$" checksums.txt | shasum -a 256 -c - || echo "checksum of the dmg is not listed or differs"
+          hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "${{ matrix.asset }}"
+          find "$RUNNER_TEMP/dmg" -maxdepth 2
+          cp "$(find "$RUNNER_TEMP/dmg" -name gokr-rsync -type f | head -1)" "$RUNNER_TEMP/bin/gokr-rsync"
+          chmod +x "$RUNNER_TEMP/bin/gokr-rsync"
+          codesign -dv --verbose=2 "$RUNNER_TEMP/bin/gokr-rsync" 2>&1 | head -12 || true
+          spctl --assess --type execute -vv "$RUNNER_TEMP/bin/gokr-rsync" 2>&1 || true
+          cp "$GITHUB_WORKSPACE/test/testUtil/gokrazy-rsync.sh" "$RUNNER_TEMP/bin/rsync"
+          chmod +x "$RUNNER_TEMP/bin/rsync"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Show system rsync, install rsync 3.x from homebrew
+        run: |
+          /usr/bin/rsync --version | head -2
+          brew install rsync
+          "$(brew --prefix)/bin/rsync" --version | head -1
+      - name: Start two sshd as the runner user
+        run: |
+          D="$RUNNER_TEMP/sshd"; mkdir -p "$D" .test-ssh-keys
+          ssh-keygen -t ed25519 -N "" -f "$D/host_key" -q
+          ssh-keygen -t rsa -b 2048 -N "" -f .test-ssh-keys/id_rsa -C github-test-key -q
+          cp .test-ssh-keys/id_rsa.pub "$D/authorized_keys"; chmod 600 "$D/authorized_keys"
+          if [ "${{ matrix.remote }}" = homebrew ]; then RPATH="$(brew --prefix)/bin:/usr/bin:/bin"; else RPATH=/usr/bin:/bin; fi
+          for p in 10022 10023; do
+            cat > "$D/sshd_$p.conf" <<CONF
+          Port $p
+          ListenAddress 127.0.0.1
+          HostKey $D/host_key
+          PidFile $D/sshd_$p.pid
+          AuthorizedKeysFile $D/authorized_keys
+          PasswordAuthentication no
+          UsePAM no
+          StrictModes no
+          SetEnv PATH=$RPATH
+          CONF
+            env -i PATH="$RPATH" /usr/sbin/sshd -f "$D/sshd_$p.conf" -E "$D/sshd_$p.log"
+          done
+          sleep 2
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i .test-ssh-keys/id_rsa -p 10022 "$USER@localhost" 'echo ok; command -v rsync; rsync --version | head -1'
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild node-pty-prebuilt-multiarch
+      - name: Run the integration tests (client = gokr-rsync)
+        run: |
+          export PATH="$RUNNER_TEMP/bin:$PATH"
+          command -v rsync; rsync --version
+          eval "$(ssh-agent -s)"
+          ssh-add .test-ssh-keys/id_rsa
+          export TEST_USER="$USER" TEST_USER2="$USER" TEST_KEYFILE="$(pwd)/.test-ssh-keys/id_rsa"
+          npx mocha --recursive test/integration --reporter spec 2>&1 | tee "$RUNNER_TEMP/result.txt"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### macos, remote rsync = ${{ matrix.remote }}, gokrazy/rsync ${{ env.GOKRAZY_VERSION }}'
+            echo '```'
+            grep -E '^\s+[0-9]+ (passing|failing|pending)' "$RUNNER_TEMP/result.txt" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: sshd log
+        if: always()
+        run: tail -n 30 "$RUNNER_TEMP/sshd/sshd_10022.log" || true
+
+  windows-probe:
+    name: windows (what is available on the runner)
+    runs-on: windows-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Environment
+        shell: bash
+        run: |
+          ssh -V
+          where ssh || true
+          wsl --status || true
+          wsl -l -v || true
+          docker version || true
+          ls /c/Windows/System32/OpenSSH || true
+          powershell -Command "Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'" || true
+          powershell -Command "Get-Service | Where-Object Name -like '*ssh*'" || true
+      - name: Released gokr-rsync
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/gz" "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP/gz"
+          gh release download "$GOKRAZY_VERSION" --repo gokrazy/rsync -p rsync_Windows_x86_64.zip -p checksums.txt
+          grep ' rsync_Windows_x86_64.zip$' checksums.txt | sha256sum -c -
+          unzip -o rsync_Windows_x86_64.zip
+          cp gokr-rsync.exe "$RUNNER_TEMP/bin/"
+          "$RUNNER_TEMP/bin/gokr-rsync.exe" --version
+          powershell -Command "Get-AuthenticodeSignature '$RUNNER_TEMP/bin/gokr-rsync.exe' | Format-List"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: scw on Windows (unit tests, ControlMaster of the native ssh)
+        shell: bash
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild node-pty-prebuilt-multiarch
+          npx mocha --recursive test/unit 2>&1 | tail -n 40
+          ssh -o ControlMaster=auto -o ControlPath="$RUNNER_TEMP/cm-%C" -o StrictHostKeyChecking=no -o BatchMode=yes localhost true 2>&1 | head -5 || true
