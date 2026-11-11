@@ -238,11 +238,12 @@ jobs:
           ls /c/msys64/usr/bin/pacman.exe
           /c/msys64/usr/bin/pacman.exe -S --noconfirm rsync 2>&1 | tail -3
           /c/msys64/usr/bin/rsync.exe --version | head -1
+      - name: Create a key without passphrase
+        run: ssh-keygen -q -t rsa -b 2048 -N '' -f "$RUNNER_TEMP/id_rsa" -C github-test-key
       - name: Prepare the sshd of the runner
         shell: pwsh
         run: |
           $key = "$env:RUNNER_TEMP\id_rsa"
-          ssh-keygen -t rsa -b 2048 -N '""' -f $key -C github-test-key
           # the runner user is an administrator: the key goes to administrators_authorized_keys
           Copy-Item "$key.pub" C:\ProgramData\ssh\administrators_authorized_keys -Force
           icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
