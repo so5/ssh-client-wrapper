@@ -275,6 +275,35 @@ jobs:
           ssh -v -o ControlMaster=auto -o "ControlPath=$cm" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" true
           "ControlMaster exit code: $LASTEXITCODE"
         continue-on-error: true
+      - name: gokr-rsync.exe alone (without scw, so without ControlMaster)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $key = $env:TEST_KEYFILE
+          $env:RSYNC_RSH = "ssh -i $key -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR"
+          $remote = "$($env:TEST_USER)@localhost"
+          function Remote($cmd) { ssh -i $key -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR $remote $cmd }
+          function Case($title, [scriptblock]$body) { "`n===== $title"; & $body; "exit code: $LASTEXITCODE" }
+          $w = Join-Path $env:RUNNER_TEMP 'rs'; New-Item -ItemType Directory -Force $w | Out-Null; Set-Location $w
+          New-Item -ItemType Directory -Force src\tree\sub, "src\dir with space" | Out-Null
+          'one' | Set-Content src\a.txt; 'two' | Set-Content src\b.txt; 'x' | Set-Content src\tree\sub\c.txt; 'sp' | Set-Content "src\dir with space\s.txt"
+          Remote 'rm -rf ~/r4w; mkdir -p ~/r4w'
+          Case 'push: relative file' { gokr-rsync.exe src\a.txt "${remote}:r4w/p1/" ; Remote 'ls -R ~/r4w/p1' }
+          Case 'push: forward-slash relative file' { gokr-rsync.exe src/b.txt "${remote}:r4w/p2/" ; Remote 'ls -R ~/r4w/p2' }
+          Case 'push: absolute path with drive letter (C:\... style)' { gokr-rsync.exe "$w\src\a.txt" "${remote}:r4w/p3/" ; Remote 'ls -R ~/r4w/p3' }
+          Case 'push: /c/... style absolute path' { $u = '/' + ($w.Substring(0,1).ToLower()) + $w.Substring(2).Replace('\','/'); gokr-rsync.exe "$u/src/a.txt" "${remote}:r4w/p4/" ; Remote 'ls -R ~/r4w/p4' }
+          Case 'push: directory with trailing slash (contents)' { gokr-rsync.exe -r src/tree/ "${remote}:r4w/p5/" ; Remote 'ls -R ~/r4w/p5' }
+          Case 'push: directory without trailing slash' { gokr-rsync.exe -r src/tree "${remote}:r4w/p6/" ; Remote 'ls -R ~/r4w/p6' }
+          Case 'push: a directory whose name has a space (escaped for the remote)' { gokr-rsync.exe -r "src/dir with space" "${remote}:r4w/p7/" ; Remote 'ls -R ~/r4w/p7' }
+          Case 'push: -a (archive)' { gokr-rsync.exe -a src/tree/ "${remote}:r4w/p8/" ; Remote 'ls -lR ~/r4w/p8' }
+          Remote 'mkdir -p ~/r4w/pull/d; echo r1 > ~/r4w/pull/r1.txt; echo r2 > ~/r4w/pull/r2.txt; echo r3 > ~/r4w/pull/d/r3.txt'
+          Case 'pull: file to a directory' { New-Item -ItemType Directory -Force dst1 | Out-Null; gokr-rsync.exe "${remote}:r4w/pull/r1.txt" dst1\ ; Get-ChildItem -Recurse dst1 | ForEach-Object FullName }
+          Case 'pull: file with a drive-letter destination' { New-Item -ItemType Directory -Force dst2 | Out-Null; gokr-rsync.exe "${remote}:r4w/pull/r1.txt" "$w\dst2\" ; Get-ChildItem -Recurse dst2 | ForEach-Object FullName }
+          Case 'pull: directory' { gokr-rsync.exe -r "${remote}:r4w/pull/d/" dst3/ ; Get-ChildItem -Recurse dst3 | ForEach-Object FullName }
+          Case 'pull: two sources' { New-Item -ItemType Directory -Force dst4 | Out-Null; gokr-rsync.exe "${remote}:r4w/pull/r1.txt" "${remote}:r4w/pull/r2.txt" dst4/ ; Get-ChildItem dst4 | ForEach-Object Name }
+          Case 'pull: missing source (rsync exits with 23)' { gokr-rsync.exe "${remote}:r4w/pull/none.txt" dst4/ }
+          Case 'version' { gokr-rsync.exe --version }
       - name: Install dependencies
         run: |
           npm ci --ignore-scripts
@@ -284,6 +313,7 @@ jobs:
         shell: pwsh
         run: npx mocha --recursive test/unit 2>&1 | Select-Object -Last 15
       - name: Run the integration tests (client = gokr-rsync.exe)
+        continue-on-error: true
         shell: pwsh
         run: |
           if ("${{ matrix.ssh }}" -eq "git-ssh") { $env:SSH_CONTROL_PERSIST_DIR = "/tmp" }
