@@ -1,3 +1,10 @@
+## [3.3.1](https://github.com/so5/ssh-client-wrapper/compare/v3.3.0...v3.3.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* resolve the executable path before spawning it on Windows ([#66](https://github.com/so5/ssh-client-wrapper/issues/66)) ([b625c8a](https://github.com/so5/ssh-client-wrapper/commit/b625c8ac7d2c10de06f29ae982f59bcfbaae06c2)), closes [#65](https://github.com/so5/ssh-client-wrapper/issues/65)
+
 # [3.3.0](https://github.com/so5/ssh-client-wrapper/compare/v3.2.0...v3.3.0) (2026-11-12)
 
 
