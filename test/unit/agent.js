@@ -20,6 +20,7 @@ import {
   probeAgent,
   addKey,
   socketIsTrusted,
+  addKeyArgs,
   resolveWellKnownDir,
   ensureAgentForHost,
   _internal
@@ -181,6 +182,16 @@ describe("test for agent", ()=>{
         return err;
       });
       expect(e.code).to.equal("ADDKEY_FAILED");
+    });
+  });
+
+  describe("#addKeyArgs", ()=>{
+    it("should pass the lifetime with -t", ()=>{
+      expect(addKeyArgs("/k", 111, "linux")).to.deep.equal(["-t", "111", "/k"]);
+      expect(addKeyArgs("/k", 111, "darwin")).to.deep.equal(["-t", "111", "/k"]);
+    });
+    it("should not pass -t on win32, whose agent refuses a key with a lifetime", ()=>{
+      expect(addKeyArgs(String.raw`C:\k`, 111, "win32")).to.deep.equal([String.raw`C:\k`]);
     });
   });
 
