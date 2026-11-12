@@ -1,3 +1,11 @@
+## [3.3.3](https://github.com/so5/ssh-client-wrapper/compare/v3.3.2...v3.3.3) (2026-11-12)
+
+
+### Bug Fixes
+
+* do not pass -t to ssh-add on Windows, whose agent refuses it ([#75](https://github.com/so5/ssh-client-wrapper/issues/75)) ([b552cc5](https://github.com/so5/ssh-client-wrapper/commit/b552cc56e21b41725381c61edc234435d5da2cd1)), closes [#71](https://github.com/so5/ssh-client-wrapper/issues/71)
+* strip the terminal control sequences which ConPTY adds to the output ([#72](https://github.com/so5/ssh-client-wrapper/issues/72)) ([4ce405e](https://github.com/so5/ssh-client-wrapper/commit/4ce405e2537eb0a478ff411c0f8d2c067571b985)), closes [#68](https://github.com/so5/ssh-client-wrapper/issues/68)
+
 ## [3.3.2](https://github.com/so5/ssh-client-wrapper/compare/v3.3.1...v3.3.2) (2026-11-12)
 
 
