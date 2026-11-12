@@ -13,6 +13,7 @@ describe("test for getSshOption", ()=>{
   const defaultValues = {
     host: "testHostName",
     ControlPersist: 180,
+    useControlMaster: true,
     maxRetry: 3,
     retryDuration: 1000
   };
@@ -70,6 +71,9 @@ describe("test for getSshOption", ()=>{
     expect(getSshOption(defaultValues).join(" ")).to.not.match(/IdentityAgent/);
   });
   describe("useControlMaster", ()=>{
+    //the default depends on the platform, so these tests must not set it
+    const withoutSetting = { ...defaultValues };
+    delete withoutSetting.useControlMaster;
     const setPlatform = (value)=>{
       const desc = Object.getOwnPropertyDescriptor(process, "platform");
       Object.defineProperty(process, "platform", { value });
@@ -78,13 +82,13 @@ describe("test for getSshOption", ()=>{
       };
     };
     it("should not emit any Control option if it is false", ()=>{
-      const sshOpts = getSshOption({ ...defaultValues, useControlMaster: false });
-      expect(sshOpts).to.deep.equal([defaultValues.host]);
+      const sshOpts = getSshOption({ ...withoutSetting, useControlMaster: false });
+      expect(sshOpts).to.deep.equal([withoutSetting.host]);
     });
     it("should emit Control options if it is true even on win32", ()=>{
       const restore = setPlatform("win32");
       try {
-        const sshOpts = getSshOption({ ...defaultValues, useControlMaster: true });
+        const sshOpts = getSshOption({ ...withoutSetting, useControlMaster: true });
         expect(sshOpts).to.include("-oControlMaster=auto");
       } finally {
         restore();
@@ -93,7 +97,7 @@ describe("test for getSshOption", ()=>{
     it("should be off by default on win32", ()=>{
       const restore = setPlatform("win32");
       try {
-        expect(getSshOption(defaultValues).join(" ")).to.not.match(/Control/);
+        expect(getSshOption(withoutSetting).join(" ")).to.not.match(/Control/);
       } finally {
         restore();
       }
@@ -102,7 +106,7 @@ describe("test for getSshOption", ()=>{
       for (const platform of ["linux", "darwin"]) {
         const restore = setPlatform(platform);
         try {
-          expect(getSshOption(defaultValues)).to.include("-oControlMaster=auto");
+          expect(getSshOption(withoutSetting)).to.include("-oControlMaster=auto");
         } finally {
           restore();
         }
