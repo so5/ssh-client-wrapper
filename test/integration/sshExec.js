@@ -329,7 +329,10 @@ describe("test for ssh execution", function () {
     it("should load the key into an agent and route ssh through it", async ()=>{
       const rt = await sshExec(h, "echo agent-ok", 0, sshout);
       expect(rt).to.equal(0);
-      expect(h.managedAgentSock).to.be.a("string").and.not.equal("");
+      if (process.platform !== "win32") {
+        //on Windows the default agent (named pipe) is used, so there is no socket path
+        expect(h.managedAgentSock).to.be.a("string").and.not.equal("");
+      }
     });
     it("should not touch the agent when useAgent is false", async ()=>{
       h.useAgent = false;

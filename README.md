@@ -222,7 +222,7 @@ If no agent can be used, or `ssh-add` fails, the wrapper silently falls back to 
 
 **Keyless / browser agents:** with no `keyFile`, set `identityAgent` to the socket of an already-populated agent (for example [`bssh-agent`](https://github.com/so5/browser-ssh-agent), which keeps the private key in a browser tab) and the wrapper will authenticate through it.
 
-**Windows:** an already-running agent (the OpenSSH Authentication Agent service, or a supplied `identityAgent`) is used, but the wrapper never spawns one; without a reachable agent it falls back to the legacy path.
+**Windows:** an already-running agent (the OpenSSH Authentication Agent service, or a supplied `identityAgent`) is used, but the wrapper never spawns one; without a reachable agent it falls back to the legacy path. The agent of Windows refuses keys with a lifetime, so `agentKeyTTL` is not applied there (the key stays in the agent until it is removed or the agent stops). Git for Windows' ssh/ssh-add can not use the Windows agent service; the wrapper then falls back to the legacy path.
 
 ## Running the tests
 

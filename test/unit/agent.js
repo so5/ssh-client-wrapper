@@ -20,6 +20,7 @@ import {
   probeAgent,
   addKey,
   socketIsTrusted,
+  addKeyArgs,
   resolveWellKnownDir,
   ensureAgentForHost,
   _internal
@@ -184,7 +185,20 @@ describe("test for agent", ()=>{
     });
   });
 
-  describe("#socketIsTrusted", ()=>{
+  describe("#addKeyArgs", ()=>{
+    it("should pass the lifetime with -t", ()=>{
+      expect(addKeyArgs("/k", 111, "linux")).to.deep.equal(["-t", "111", "/k"]);
+      expect(addKeyArgs("/k", 111, "darwin")).to.deep.equal(["-t", "111", "/k"]);
+    });
+    it("should not pass -t on win32, whose agent refuses a key with a lifetime", ()=>{
+      expect(addKeyArgs(String.raw`C:\k`, 111, "win32")).to.deep.equal([String.raw`C:\k`]);
+    });
+  });
+
+  //the shared agent is for POSIX platforms (see canSpawnSharedAgent)
+  const describePosix = process.platform === "win32" ? describe.skip : describe;
+
+  describePosix("#socketIsTrusted", ()=>{
     it("should be true for a uid-owned mode-0600 file", ()=>{
       const f = path.join(tmpDir, "s");
       fs.writeFileSync(f, "", { mode: 0o600 });
@@ -202,7 +216,7 @@ describe("test for agent", ()=>{
     });
   });
 
-  describe("#resolveWellKnownDir", ()=>{
+  describePosix("#resolveWellKnownDir", ()=>{
     it("should honour SSH_CLIENT_WRAPPER_AGENT_DIR", ()=>{
       const orig = process.env.SSH_CLIENT_WRAPPER_AGENT_DIR;
       process.env.SSH_CLIENT_WRAPPER_AGENT_DIR = path.join(tmpDir, "agentdir");
