@@ -20,6 +20,7 @@ import {
   probeAgent,
   addKey,
   socketIsTrusted,
+  addKeyArgs,
   resolveWellKnownDir,
   ensureAgentForHost,
   _internal
@@ -122,7 +123,7 @@ describe("test for agent", ()=>{
       pty.emitData("Identity added: /k (/k)\r\n");
       await p;
       expect(ph).to.not.be.called;
-      expect(_internal.spawn).to.be.calledWithMatch("ssh-add", ["-t", "111", "/k"]);
+      expect(_internal.spawn).to.be.calledWithMatch(sinon.match(/ssh-add/), addKeyArgs("/k", 111));
     });
     it("should call the passphrase callback once for an encrypted key", async ()=>{
       const pty = makeFakePty();
@@ -181,6 +182,16 @@ describe("test for agent", ()=>{
         return err;
       });
       expect(e.code).to.equal("ADDKEY_FAILED");
+    });
+  });
+
+  describe("#addKeyArgs", ()=>{
+    it("should pass the lifetime with -t", ()=>{
+      expect(addKeyArgs("/k", 111, "linux")).to.deep.equal(["-t", "111", "/k"]);
+      expect(addKeyArgs("/k", 111, "darwin")).to.deep.equal(["-t", "111", "/k"]);
+    });
+    it("should not pass -t on win32, whose agent refuses a key with a lifetime", ()=>{
+      expect(addKeyArgs(String.raw`C:\k`, 111, "win32")).to.deep.equal([String.raw`C:\k`]);
     });
   });
 
@@ -259,7 +270,7 @@ describe("test for agent", ()=>{
       await p;
       expect(hostInfo.managedAgentSock).to.equal("/run/agent.sock");
       expect(hostInfo._agentEnsuredAt).to.be.a("number");
-      expect(_internal.spawn).to.be.calledWithMatch("ssh-add", ["-t", "42", kf]);
+      expect(_internal.spawn).to.be.calledWithMatch(sinon.match(/ssh-add/), addKeyArgs(kf, 42));
     });
     it("should propagate BAD_PASSPHRASE instead of falling back", async ()=>{
       const kf = path.join(tmpDir, "id2");

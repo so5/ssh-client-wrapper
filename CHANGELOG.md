@@ -1,3 +1,15 @@
+# [3.4.0](https://github.com/so5/ssh-client-wrapper/compare/v3.3.2...v3.4.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* strip the terminal control sequences which ConPTY adds to the output ([#72](https://github.com/so5/ssh-client-wrapper/issues/72)) ([4ce405e](https://github.com/so5/ssh-client-wrapper/commit/4ce405e2537eb0a478ff411c0f8d2c067571b985)), closes [#68](https://github.com/so5/ssh-client-wrapper/issues/68)
+
+
+### Features
+
+* use gokr-rsync when rsync is not found ([#73](https://github.com/so5/ssh-client-wrapper/issues/73)) ([ae1079a](https://github.com/so5/ssh-client-wrapper/commit/ae1079a97632838ce8e7c1bef5690b8c28870506)), closes [#69](https://github.com/so5/ssh-client-wrapper/issues/69)
+
 ## [3.3.2](https://github.com/so5/ssh-client-wrapper/compare/v3.3.1...v3.3.2) (2026-11-12)
 
 
