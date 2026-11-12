@@ -1,3 +1,24 @@
+## [3.3.2](https://github.com/so5/ssh-client-wrapper/compare/v3.3.1...v3.3.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* canConnect must try the login again without the master connection ([#67](https://github.com/so5/ssh-client-wrapper/issues/67)) ([03c495a](https://github.com/so5/ssh-client-wrapper/commit/03c495a5b51280527646630edff117a1a1d549ae))
+
+## [3.3.1](https://github.com/so5/ssh-client-wrapper/compare/v3.3.0...v3.3.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* resolve the executable path before spawning it on Windows ([#66](https://github.com/so5/ssh-client-wrapper/issues/66)) ([b625c8a](https://github.com/so5/ssh-client-wrapper/commit/b625c8ac7d2c10de06f29ae982f59bcfbaae06c2)), closes [#65](https://github.com/so5/ssh-client-wrapper/issues/65)
+
+# [3.3.0](https://github.com/so5/ssh-client-wrapper/compare/v3.2.0...v3.3.0) (2026-11-12)
+
+
+### Features
+
+* add useControlMaster option to run without the ssh master connection ([#64](https://github.com/so5/ssh-client-wrapper/issues/64)) ([e642866](https://github.com/so5/ssh-client-wrapper/commit/e64286638131788d29b61cbaa19d49b18f39ce42)), closes [#62](https://github.com/so5/ssh-client-wrapper/issues/62)
+
 # [3.2.0](https://github.com/so5/ssh-client-wrapper/compare/v3.1.4...v3.2.0) (2026-11-12)
 
 
