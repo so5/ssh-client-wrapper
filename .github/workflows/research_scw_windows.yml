@@ -148,6 +148,12 @@ jobs:
           Get-Command ssh-add | Format-Table Source
           ssh-add -t 3600 $env:TEST_KEYFILE
           "ssh-add exit: $LASTEXITCODE"
+          ssh-add $env:TEST_KEYFILE
+          "ssh-add without -t exit: $LASTEXITCODE"
+          ssh-add -l
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o IdentitiesOnly=no -o PubkeyAuthentication=yes "$env:TEST_USER@localhost" 'echo via-agent-or-default-key'
+          ssh-add -d $env:TEST_KEYFILE
+          "ssh-add -d exit: $LASTEXITCODE"
           ssh-add -l
           ssh-add -d $env:TEST_KEYFILE
           node --input-type=module -e "
