@@ -131,6 +131,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Start the ssh-agent service
+        continue-on-error: true
         shell: pwsh
         run: |
           Get-Service ssh-agent | Format-List Name, Status, StartType
