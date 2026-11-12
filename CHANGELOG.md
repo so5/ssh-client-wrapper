@@ -1,3 +1,10 @@
+## [3.3.2](https://github.com/so5/ssh-client-wrapper/compare/v3.3.1...v3.3.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* canConnect must try the login again without the master connection ([#67](https://github.com/so5/ssh-client-wrapper/issues/67)) ([03c495a](https://github.com/so5/ssh-client-wrapper/commit/03c495a5b51280527646630edff117a1a1d549ae))
+
 ## [3.3.1](https://github.com/so5/ssh-client-wrapper/compare/v3.3.0...v3.3.1) (2026-11-12)
 
 
