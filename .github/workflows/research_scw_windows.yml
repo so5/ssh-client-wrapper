@@ -140,6 +140,24 @@ jobs:
           Get-Service ssh-agent | Format-List Name, Status, StartType
           ssh-add -l
           "ssh-add -l exit: $LASTEXITCODE"
+      - name: ssh-add by hand and in a pty
+        timeout-minutes: 4
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Get-Command ssh-add | Format-Table Source
+          ssh-add -t 3600 $env:TEST_KEYFILE
+          "ssh-add exit: $LASTEXITCODE"
+          ssh-add -l
+          ssh-add -d $env:TEST_KEYFILE
+          node --input-type=module -e "
+            import { fork } from './lib/fork.js';
+            let out = '';
+            try { const rt = await fork(null, 'ssh-add', ['-t', '3600', process.env.TEST_KEYFILE], 20, (d)=>{ out += d; }); console.log('PTY exit', rt); }
+            catch (e) { console.log('PTY error', e.message, e.rt, e.code); }
+            console.log('PTY output', JSON.stringify(out));
+            process.exit(0);
+          " 2>&1 | Select-String -NotMatch -Pattern 'AttachConsole|conpty_console|^\s+at |consoleProcessList|\^|Node.js v'
       - name: Probe ensureAgentForHost
         timeout-minutes: 4
         continue-on-error: true
