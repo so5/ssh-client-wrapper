@@ -134,13 +134,13 @@ jobs:
       - name: Unit tests
         continue-on-error: true
         shell: pwsh
-        run: npx mocha --recursive test/unit 2>&1 | Select-Object -Last 15
+        run: npx mocha --recursive test/unit 2>&1 | Select-Object -Last 120
       - name: Run the integration tests (client = gokr-rsync.exe)
         continue-on-error: true
         shell: pwsh
         run: |
           if ("${{ matrix.ssh }}" -eq "git-ssh") { $env:SSH_CONTROL_PERSIST_DIR = "/tmp" }
-          npx mocha --recursive test/integration --reporter spec 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\result.txt"
+          npx mocha test/integration/sshExec.js --reporter spec 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\result.txt"
       - name: Summary
         if: always()
         shell: pwsh
