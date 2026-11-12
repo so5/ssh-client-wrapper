@@ -140,6 +140,8 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
+          # rsync on Windows is out of scope here (rsync.cmd can not be spawned by a pty): do not send the rcfile
+          (Get-Content test/integration/sshExec.js) -replace 'await send\(hostInfo, \[path.resolve\(__dirname, "../testUtil/testrc"\)\], rcfilePath, \[\], 0\);', '' | Set-Content test/integration/sshExec.js
           if ("${{ matrix.ssh }}" -eq "git-ssh") { $env:SSH_CONTROL_PERSIST_DIR = "/tmp" }
           npx mocha test/integration/sshExec.js --reporter spec --timeout 40000 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\result.txt"
       - name: Summary
