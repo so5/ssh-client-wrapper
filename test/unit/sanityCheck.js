@@ -152,6 +152,13 @@ describe("test for sanityCheck", ()=>{
     };
     expect(sanityCheck(testData)).to.deep.equal(testData);
   });
+  it("should coerce string value for useControlMaster and not inject a default", ()=>{
+    expect(sanityCheck({ host })).to.not.have.property("useControlMaster");
+    expect(sanityCheck({ host, useControlMaster: "false" })).to.have.property("useControlMaster", false);
+  });
+  it("should throw error if useControlMaster is not boolean-coercible", ()=>{
+    expect(sanityCheck.bind(null, { host, useControlMaster: "notabool" })).to.throw(/invalid useControlMaster/);
+  });
   it("should coerce string value for useAgent", ()=>{
     expect(sanityCheck({ host, useAgent: "true" })).to.deep.equal({ host, ...defaultValues, useAgent: true });
     expect(sanityCheck({ host, useAgent: 0 })).to.deep.equal({ host, ...defaultValues, useAgent: false });

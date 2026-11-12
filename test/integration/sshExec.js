@@ -249,6 +249,53 @@ describe("test for ssh execution", function () {
       expect(err.code).to.equal("AUTH_FAILED");
     });
   });
+  describe("without master connection (useControlMaster: false)", ()=>{
+    let h;
+    beforeEach(()=>{
+      h = { ...hostInfo, masterPty: null, useControlMaster: false };
+    });
+    afterEach(async ()=>{
+      await disconnect(h);
+    });
+    it("should execute a command and leave no master pty", async ()=>{
+      const rt = await sshExec(h, "echo hoge", 0, sshout);
+
+      expect(rt).to.equal(0);
+      expect(sshout).to.be.calledWithMatch(/^hoge/);
+      expect(h.masterPty).to.not.be.ok;
+    });
+    it("should execute several commands", async ()=>{
+      expect(await sshExec(h, "true", 0)).to.equal(0);
+      expect(await sshExec(h, "false", 0)).to.equal(1);
+    });
+    it("should not leave a control socket", async ()=>{
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "scw-"));
+      try {
+        await sshExec({ ...h, ControlPersistDir: dir }, "true", 0);
+
+        expect(await fs.readdir(dir)).to.have.lengthOf(0);
+      } finally {
+        await fs.rm(dir, { recursive: true, force: true });
+      }
+    });
+    it("canConnect should resolve true", async ()=>{
+      expect(await canConnect(h, 30)).to.be.true;
+    });
+    it("canConnect should reject with AUTH_FAILED for a wrong password", async ()=>{
+      const h2 = { ...h, password: "xxxx" };
+      delete h2.keyFile;
+      h2.sshOpt = ["-o", "IdentitiesOnly=yes", "-o", "PubkeyAuthentication=no", "-o", "PreferredAuthentications=password"];
+      let err = null;
+      try {
+        await canConnect(h2, 30);
+      } catch (e) {
+        err = e;
+      }
+
+      expect(err).to.be.an("error");
+      expect(err.code).to.equal("AUTH_FAILED");
+    });
+  });
   describe("#ssh-agent authentication", ()=>{
     let h;
     before(function () {

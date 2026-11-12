@@ -93,6 +93,23 @@ describe("test rsync exec", function () {
     }
     await disconnect(hostInfo);
   });
+  describe("without master connection (useControlMaster: false)", ()=>{
+    const noMaster = { ...hostInfo, masterPty: null, useControlMaster: false };
+    after(async ()=>{
+      await disconnect(noMaster);
+    });
+    it("should send a file", async ()=>{
+      await send(noMaster, [localFiles[0]], remoteEmptyDir, [], 0);
+
+      await sshExec(noMaster, `ls ${remoteEmptyDir}`, 0, output);
+      expect(formatLsOutput(rt)).to.have.members(["foo"]);
+    });
+    it("should receive a file", async ()=>{
+      await recv(noMaster, [remoteFiles[0]], localEmptyDir, [], 0);
+
+      expect(await fs.readdir(localEmptyDir)).to.have.members(["foo"]);
+    });
+  });
   describe("#send", async ()=>{
     describe("send single file", ()=>{
       it("should accept relative src file and relative dst dir name", async ()=>{

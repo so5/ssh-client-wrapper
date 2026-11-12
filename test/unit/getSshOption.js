@@ -69,6 +69,46 @@ describe("test for getSshOption", ()=>{
   it("should not emit -oIdentityAgent when no agent is in play", ()=>{
     expect(getSshOption(defaultValues).join(" ")).to.not.match(/IdentityAgent/);
   });
+  describe("useControlMaster", ()=>{
+    const setPlatform = (value)=>{
+      const desc = Object.getOwnPropertyDescriptor(process, "platform");
+      Object.defineProperty(process, "platform", { value });
+      return ()=>{
+        Object.defineProperty(process, "platform", desc);
+      };
+    };
+    it("should not emit any Control option if it is false", ()=>{
+      const sshOpts = getSshOption({ ...defaultValues, useControlMaster: false });
+      expect(sshOpts).to.deep.equal([defaultValues.host]);
+    });
+    it("should emit Control options if it is true even on win32", ()=>{
+      const restore = setPlatform("win32");
+      try {
+        const sshOpts = getSshOption({ ...defaultValues, useControlMaster: true });
+        expect(sshOpts).to.include("-oControlMaster=auto");
+      } finally {
+        restore();
+      }
+    });
+    it("should be off by default on win32", ()=>{
+      const restore = setPlatform("win32");
+      try {
+        expect(getSshOption(defaultValues).join(" ")).to.not.match(/Control/);
+      } finally {
+        restore();
+      }
+    });
+    it("should be on by default on linux and darwin", ()=>{
+      for (const platform of ["linux", "darwin"]) {
+        const restore = setPlatform(platform);
+        try {
+          expect(getSshOption(defaultValues)).to.include("-oControlMaster=auto");
+        } finally {
+          restore();
+        }
+      }
+    });
+  });
   describe("-oNumberOfPasswordPrompts", ()=>{
     it("should ask only once if password is a string", ()=>{
       const hostInfo = { ...defaultValues, password: "secret" };
