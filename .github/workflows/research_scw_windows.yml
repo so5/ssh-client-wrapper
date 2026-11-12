@@ -129,21 +129,39 @@ jobs:
           Case 'pull: missing source (rsync exits with 23)' { gokr-rsync.exe "${remote}:r4w/pull/none.txt" dst4/ }
           Case 'version' { gokr-rsync.exe --version }
       - name: Install dependencies
+        run: npm ci
+      - name: Start the ssh-agent service
+        shell: pwsh
         run: |
-          npm ci
-      - name: Unit tests
+          Get-Service ssh-agent | Format-List Name, Status, StartType
+          Set-Service ssh-agent -StartupType Manual
+          Start-Service ssh-agent
+          Get-Service ssh-agent | Format-List Name, Status, StartType
+          ssh-add -l
+          "ssh-add -l exit: $LASTEXITCODE"
+      - name: Probe ensureAgentForHost
+        timeout-minutes: 4
         continue-on-error: true
         shell: pwsh
-        run: npx mocha --recursive test/unit 2>&1 | Select-Object -Last 120
-      - name: Run the integration tests (client = gokr-rsync.exe)
+        run: |
+          $env:DEBUG = "sshClientWrapper:debug:agent*,sshClientWrapper:debug:fork"
+          node --input-type=module -e "
+            import { ensureAgentForHost } from './lib/agent.js';
+            const h = { host: 'localhost', user: process.env.TEST_USER, keyFile: process.env.TEST_KEYFILE };
+            await ensureAgentForHost(h);
+            console.log('RESULT', JSON.stringify({ managedAgentSock: h.managedAgentSock, ensuredAt: typeof h._agentEnsuredAt }));
+            process.exit(0);
+          " 2>&1
+          ssh-add -l
+          "ssh-add -l exit: $LASTEXITCODE"
+      - name: Run the agent integration tests
         timeout-minutes: 6
         continue-on-error: true
         shell: pwsh
         run: |
-          # rsync on Windows is out of scope here (rsync.cmd can not be spawned by a pty): do not send the rcfile
           (Get-Content test/integration/sshExec.js) -replace 'await send\(hostInfo, \[path.resolve\(__dirname, "../testUtil/testrc"\)\], rcfilePath, \[\], 0\);', '' | Set-Content test/integration/sshExec.js
           if ("${{ matrix.ssh }}" -eq "git-ssh") { $env:SSH_CONTROL_PERSIST_DIR = "/tmp" }
-          npx mocha test/integration/sshExec.js --reporter spec --timeout 40000 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\result.txt"
+          npx mocha test/integration/sshExec.js --grep "ssh-agent" --reporter spec --timeout 40000 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\result.txt"
       - name: Summary
         if: always()
         shell: pwsh
