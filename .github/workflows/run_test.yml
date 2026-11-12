@@ -81,3 +81,20 @@ jobs:
           name: code-coverage-report
           path: coverage-report.lcov
           retention-days: 1
+  test-windows:
+    name: test (windows, node ${{ matrix.node-version }})
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        node-version: [22.x, 24.x]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      #the integration tests need the test sshd containers, which are not available on Windows
+      - name: Run unit tests
+        run: npx mocha --recursive test/unit
