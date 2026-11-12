@@ -10,6 +10,7 @@ declare module "ssh-client-wrapper" {
     ControlPersist?: number;
     ConnectTimeout?: number;
     ControlPersistDir?: string;
+    useControlMaster?: boolean;
     maxRetry?: number;
     retryDuration?: number;
     retryableExitCodes?: number[];

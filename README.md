@@ -64,6 +64,7 @@ Creates a new SSH client instance.
     *   `retryDuration` (number, optional): Time (msec) to wait between each retry. Defaults to `1000`.
     *   `retryableExitCodes` (number[], optional): Additional rsync exit codes to treat as retryable for `.send()`/`.recv()`. See [Retry behavior for `.send()` / `.recv()`](#retry-behavior-for-send--recv) below.
     *   `replaceRetryableExitCodes` (boolean, optional): If `true`, `retryableExitCodes` replaces the built-in retryable exit code list instead of adding to it.
+    *   `useControlMaster` (boolean, optional): Keep an ssh master connection (`ControlMaster`) and share it between the ssh/rsync calls. Defaults to `true`, but to `false` on Windows because its ssh clients can not do it. If `false`, every call logs in by itself (use the ssh-agent to avoid answering prompts every time), and `ControlPersist` and `ControlPersistDir` are ignored.
     *   `useAgent` (boolean, optional): Authenticate key-based hosts through an ssh-agent instead of replaying the passphrase on every connection. Defaults to `true` when `keyFile` is set. Set `false` to force the legacy behavior. See [SSH agent authentication](#ssh-agent-authentication) below.
     *   `identityAgent` (string, optional): Path to an existing ssh-agent socket to authenticate through (emitted as `-oIdentityAgent`). When set, the wrapper uses that agent as-is and manages nothing.
     *   `agentKeyTTL` (number, optional): Lifetime in seconds applied to keys the wrapper adds to an agent (`ssh-add -t`). Defaults to `3600`.
