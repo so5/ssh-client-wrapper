@@ -1,3 +1,10 @@
+# [3.3.0](https://github.com/so5/ssh-client-wrapper/compare/v3.2.0...v3.3.0) (2026-11-12)
+
+
+### Features
+
+* add useControlMaster option to run without the ssh master connection ([#64](https://github.com/so5/ssh-client-wrapper/issues/64)) ([e642866](https://github.com/so5/ssh-client-wrapper/commit/e64286638131788d29b61cbaa19d49b18f39ce42)), closes [#62](https://github.com/so5/ssh-client-wrapper/issues/62)
+
 # [3.2.0](https://github.com/so5/ssh-client-wrapper/compare/v3.1.4...v3.2.0) (2026-11-12)
 
 
