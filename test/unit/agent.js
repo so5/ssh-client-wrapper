@@ -184,7 +184,10 @@ describe("test for agent", ()=>{
     });
   });
 
-  describe("#socketIsTrusted", ()=>{
+  //the shared agent is for POSIX platforms (see canSpawnSharedAgent)
+  const describePosix = process.platform === "win32" ? describe.skip : describe;
+
+  describePosix("#socketIsTrusted", ()=>{
     it("should be true for a uid-owned mode-0600 file", ()=>{
       const f = path.join(tmpDir, "s");
       fs.writeFileSync(f, "", { mode: 0o600 });
@@ -202,7 +205,7 @@ describe("test for agent", ()=>{
     });
   });
 
-  describe("#resolveWellKnownDir", ()=>{
+  describePosix("#resolveWellKnownDir", ()=>{
     it("should honour SSH_CLIENT_WRAPPER_AGENT_DIR", ()=>{
       const orig = process.env.SSH_CLIENT_WRAPPER_AGENT_DIR;
       process.env.SSH_CLIENT_WRAPPER_AGENT_DIR = path.join(tmpDir, "agentdir");

@@ -1,5 +1,7 @@
 process.on("unhandledRejection", console.dir);
 
+import os from "node:os";
+
 //setup test framework
 import * as chai from "chai";
 import { expect } from "chai";
@@ -8,6 +10,8 @@ chai.use(chaiAsPromised);
 
 //testee
 import { getSshOption } from "../../lib/util.js";
+
+const tmpDir = os.tmpdir();
 
 describe("test for getSshOption", ()=>{
   const defaultValues = {
@@ -28,13 +32,13 @@ describe("test for getSshOption", ()=>{
   });
   it("should change ControlPath by ControlPersistDir", ()=>{
     const hostInfo = { ...defaultValues };
-    hostInfo.ControlPersistDir = "/tmp";
+    hostInfo.ControlPersistDir = tmpDir;
     const sshOpts = getSshOption(hostInfo);
     expect(sshOpts).to.be.an("array");
     expect(sshOpts).to.have.lengthOf(4);
     expect(sshOpts[0]).to.equal(defaultValues.host);
     expect(sshOpts[1]).to.equal("-oControlMaster=auto");
-    expect(sshOpts[2]).to.equal("-oControlPath=/tmp/scw-%C");
+    expect(sshOpts[2]).to.equal(`-oControlPath=${tmpDir}/scw-%C`);
     expect(sshOpts[3]).to.equal("-oControlPersist=180");
   });
   it("should fall back to ~/.ssh if ControlPersistDir does not exist", ()=>{
@@ -44,13 +48,13 @@ describe("test for getSshOption", ()=>{
     expect(sshOpts[2]).to.equal("-oControlPath=~/.ssh/scw-%C");
   });
   it("should change ControlPath by Environment variable", ()=>{
-    process.env.SSH_CONTROL_PERSIST_DIR = "/tmp";
+    process.env.SSH_CONTROL_PERSIST_DIR = tmpDir;
     const sshOpts = getSshOption(defaultValues);
     expect(sshOpts).to.be.an("array");
     expect(sshOpts).to.have.lengthOf(4);
     expect(sshOpts[0]).to.equal(defaultValues.host);
     expect(sshOpts[1]).to.equal("-oControlMaster=auto");
-    expect(sshOpts[2]).to.equal("-oControlPath=/tmp/scw-%C");
+    expect(sshOpts[2]).to.equal(`-oControlPath=${tmpDir}/scw-%C`);
     expect(sshOpts[3]).to.equal("-oControlPersist=180");
   });
   it("should emit -oIdentityAgent for a wrapper-managed agent socket", ()=>{
