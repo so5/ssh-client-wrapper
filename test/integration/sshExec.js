@@ -281,6 +281,20 @@ describe("test for ssh execution", function () {
     it("canConnect should resolve true", async ()=>{
       expect(await canConnect(h, 30)).to.be.true;
     });
+    it("canConnect should log in again even if the host has been verified before", async ()=>{
+      const h2 = { ...h, password: "xxxx", _connectionVerified: true };
+      delete h2.keyFile;
+      h2.sshOpt = ["-o", "IdentitiesOnly=yes", "-o", "PubkeyAuthentication=no", "-o", "PreferredAuthentications=password"];
+      let err = null;
+      try {
+        await canConnect(h2, 30);
+      } catch (e) {
+        err = e;
+      }
+
+      expect(err).to.be.an("error");
+      expect(err.code).to.equal("AUTH_FAILED");
+    });
     it("canConnect should reject with AUTH_FAILED for a wrong password", async ()=>{
       const h2 = { ...h, password: "xxxx" };
       delete h2.keyFile;
