@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/so5/ssh-client-wrapper/compare/v3.1.4...v3.2.0) (2026-11-12)
+
+
+### Features
+
+* use microsoft/node-pty instead of the unmaintained node-pty-prebuilt-multiarch ([#63](https://github.com/so5/ssh-client-wrapper/issues/63)) ([b0c8f95](https://github.com/so5/ssh-client-wrapper/commit/b0c8f955935efe25559467109e31b597379c22a4)), closes [#61](https://github.com/so5/ssh-client-wrapper/issues/61)
+
 ## [3.1.4](https://github.com/so5/ssh-client-wrapper/compare/v3.1.3...v3.1.4) (2026-10-25)
 
 
