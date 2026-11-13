@@ -546,6 +546,12 @@ describe("test rsync exec", function () {
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["foo", "bar", "baz"]);
       });
+      it("should create all missing levels of dst dir for multiple sources", async ()=>{
+        const dst = path.join(localEmptyDir, "a", "b");
+        await recv(hostInfo, [path.posix.join(remoteRoot, "foo"), path.posix.join(remoteRoot, "bar")], dst, [], 0);
+        const rt2 = await fs.readdir(dst);
+        expect(rt2).to.have.members(["foo", "bar"]);
+      });
     });
     describe("error case", ()=>{
       it("should not send directory to existing file path", ()=>{
