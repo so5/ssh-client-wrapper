@@ -1,3 +1,10 @@
+## [3.3.4](https://github.com/so5/ssh-client-wrapper/compare/v3.3.3...v3.3.4) (2026-11-13)
+
+
+### Bug Fixes
+
+* create the whole dst directory when receiving multiple sources ([#78](https://github.com/so5/ssh-client-wrapper/issues/78)) ([2455b3b](https://github.com/so5/ssh-client-wrapper/commit/2455b3bd03b6fefe5fe0f036eb8688379e804a76))
+
 ## [3.3.3](https://github.com/so5/ssh-client-wrapper/compare/v3.3.2...v3.3.3) (2026-11-12)
 
 
