@@ -8,18 +8,13 @@ name: Unstick behind bot PRs
 # trigger dependency-pr-automerge.yml's own update-branch step. Run this
 # independently of PR events to catch and fix that case.
 #
-# How a BEHIND Dependabot PR is updated (GITHUB_TOKEN can not do it: a comment
-# of github-actions is refused by Dependabot with "only users with push access
-# can use that command", and a push made with GITHUB_TOKEN does not run the
-# workflows of the PR):
-# 1. if the repository has the secret DEPENDABOT_REBASE_TOKEN (a personal
-#    access token with "Pull requests: write"), ask Dependabot to rebase
-#    (`@dependabot rebase`) as that user;
-# 2. otherwise merge the default branch into the PR branch and push it with
-#    SEMANTIC_RELEASE_TOKEN of the release workflow (it only needs the
-#    "Contents" permission). The workflows run normally for the push of a
-#    personal access token. Dependabot will not rebase that PR any more, which
-#    does not matter because it is merged right after its checks pass.
+# How a BEHIND Dependabot PR is updated (GITHUB_TOKEN can not do it: a push made
+# with GITHUB_TOKEN does not run the workflows of the PR): the default branch is
+# merged into the PR branch and pushed with SEMANTIC_RELEASE_TOKEN of the
+# release workflow (it only needs the "Contents" permission). The workflows run
+# normally for the push of a personal access token. Dependabot will not rebase
+# that PR any more, which does not matter because it is merged right after its
+# checks pass.
 # Merging is skipped if there is a conflict: Dependabot rebases those itself.
 on:
   schedule:
@@ -37,7 +32,6 @@ jobs:
       - name: Update behind bot PRs with auto-merge enabled
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REBASE_TOKEN: ${{ secrets.DEPENDABOT_REBASE_TOKEN }}
           PUSH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
@@ -70,24 +64,11 @@ jobs:
           | while read -r num author; do
               case "$author" in
                 *dependabot*)
-                  if [ -n "$REBASE_TOKEN" ]; then
-                    # do not repeat the request while Dependabot is still working on the previous one
-                    head=$(gh pr view "$num" --repo "$REPO" --json headRefOid --jq .headRefOid)
-                    head_date=$(gh api "repos/$REPO/commits/$head" --jq .commit.committer.date)
-                    last=$(gh api "repos/$REPO/issues/$num/comments" --paginate --jq '.[] | select(.body == "@dependabot rebase") | .created_at' | sort | tail -n 1)
-                    limit=$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-                    if [ -n "$last" ] && [[ "$last" > "$head_date" ]] && [[ "$last" > "$limit" ]]; then
-                      echo "PR #$num is behind, rebase was already requested at $last - waiting"
-                      continue
-                    fi
-                    echo "PR #$num is behind with auto-merge enabled - asking Dependabot to rebase"
-                    GH_TOKEN="$REBASE_TOKEN" gh pr comment "$num" --repo "$REPO" --body "@dependabot rebase" \
-                      || echo "::warning::could not comment on PR #$num"
-                  elif [ -n "$PUSH_TOKEN" ]; then
+                  if [ -n "$PUSH_TOKEN" ]; then
                     echo "PR #$num is behind with auto-merge enabled - merging the default branch into it"
                     update_with_push "$num" || echo "::warning::could not update PR #$num"
                   else
-                    echo "::warning::PR #$num is behind, but neither DEPENDABOT_REBASE_TOKEN nor SEMANTIC_RELEASE_TOKEN is set."
+                    echo "::warning::PR #$num is behind, but SEMANTIC_RELEASE_TOKEN is not set."
                   fi ;;
                 *)
                   echo "PR #$num is behind with auto-merge enabled - requesting branch update"
