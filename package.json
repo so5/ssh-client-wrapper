@@ -37,7 +37,7 @@
     "*.js": "eslint --fix"
   },
   "overrides": {
-    "@semantic-release/npm": "^13.1.0"
+    "@semantic-release/npm": "$@semantic-release/npm"
   },
   "dependencies": {
     "ajv": "^8.17.1",
