@@ -99,7 +99,7 @@ jobs:
   approve-and-merge:
     needs: classify
     runs-on: ubuntu-latest
-    if: needs.classify.outputs.bump == 'patch' || needs.classify.outputs.bump == 'minor'
+    if: needs.classify.outputs.bump == 'patch' || needs.classify.outputs.bump == 'minor' || needs.classify.outputs.bump == 'major'
     steps:
       - name: Auto-approve PR
         uses: hmarr/auto-approve-action@v4.0.0
@@ -148,7 +148,7 @@ jobs:
   notify-major:
     needs: classify
     runs-on: ubuntu-latest
-    if: needs.classify.outputs.bump == 'major' || needs.classify.outputs.bump == 'unknown'
+    if: needs.classify.outputs.bump == 'unknown'
     steps:
       - name: Flag for manual review
         run: |
