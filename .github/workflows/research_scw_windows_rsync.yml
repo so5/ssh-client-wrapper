@@ -1,0 +1,123 @@
+name: research scw on windows with rsync
+
+# Research only (branch research/scw-windows-rsync): does ssh-client-wrapper (microsoft/node-pty, useControlMaster off by default on win32) work on a Windows runner?
+# Not part of the pull request checks. Run it by hand (workflow_dispatch) or by pushing to this branch.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/scw-windows-rsync
+env:
+    GH_TOKEN: ${{ github.token }}
+jobs:
+  windows:
+    name: windows (sshd of the runner as the remote, ssh = ${{ matrix.ssh }})
+    runs-on: windows-latest
+    continue-on-error: true
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        ssh: [win32-openssh, git-ssh]
+    env:
+      TEST_HOST: localhost
+      TEST_HOST2: localhost
+      TEST_PORT: 22
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 22
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Install rsync 3.x for the remote side (MSYS2)
+        run: |
+          ls /c/msys64/usr/bin/pacman.exe
+          /c/msys64/usr/bin/pacman.exe -S --noconfirm rsync 2>&1 | tail -3
+          /c/msys64/usr/bin/rsync.exe --version | head -1
+      - name: Create a key without passphrase
+        run: ssh-keygen -q -t rsa -b 2048 -N '' -f "$RUNNER_TEMP/id_rsa" -C github-test-key
+      - name: Prepare the sshd of the runner
+        shell: pwsh
+        run: |
+          $key = "$env:RUNNER_TEMP\id_rsa"
+          # the runner user is an administrator: the key goes to administrators_authorized_keys
+          Copy-Item "$key.pub" C:\ProgramData\ssh\administrators_authorized_keys -Force
+          icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+          # remote commands run in the bash of MSYS2, which has rsync and the unix tools the tests use
+          New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value C:\msys64\usr\bin\bash.exe -PropertyType String -Force
+          [Environment]::SetEnvironmentVariable('Path', 'C:\msys64\usr\bin;' + [Environment]::GetEnvironmentVariable('Path','Machine'), 'Machine')
+          Restart-Service sshd
+          Get-Service sshd
+          icacls $key /inheritance:r /grant:r "$($env:USERNAME):R" | Out-Null
+          "TEST_USER=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_KEYFILE=$key" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - name: Choose the ssh
+        run: |
+          # the local rsync of the tests is the MSYS2 one; the chosen ssh must come before it in PATH
+          echo "C:\\msys64\\usr\\bin" >> "$GITHUB_PATH"
+          if [ "${{ matrix.ssh }}" = win32-openssh ]; then
+            echo "C:\\Windows\\System32\\OpenSSH" >> "$GITHUB_PATH"
+          else
+            echo "C:\\Program Files\\Git\\usr\\bin" >> "$GITHUB_PATH"
+          fi
+      - name: Show the tools the tests will use
+        shell: pwsh
+        run: |
+          Get-Command ssh, rsync | Format-Table Name, Source
+          ssh -V
+          rsync --version
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" 'echo remote-ok; uname -a; command -v rsync; rsync --version | head -1; echo $HOME; pwd'
+          if ("${{ matrix.ssh }}" -eq "git-ssh") { $cm = "/tmp/cm-%C" } else { $cm = "$env:RUNNER_TEMP\cm-%C" }
+          ssh -v -o ControlMaster=auto -o "ControlPath=$cm" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" true
+          "ControlMaster exit code: $LASTEXITCODE"
+        continue-on-error: true
+      - name: Install dependencies
+        run: npm ci
+      - name: Show the tools the tests will use (rsync is the MSYS2 one)
+        shell: pwsh
+        run: |
+          Get-Command ssh, rsync | Format-Table Name, Source
+          ssh -V
+          rsync --version | Select-Object -First 1
+      - name: Unit tests
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: pwsh
+        run: npx mocha --recursive test/unit --reporter spec 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\unit.txt"
+      - name: Integration tests with a real rsync
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: pwsh
+        run: |
+          (Get-Content test/integration/sshExec.js) -replace 'await send\(hostInfo, \[path.resolve\(__dirname, "../testUtil/testrc"\)\], rcfilePath, \[\], 0\);', '' | Set-Content test/integration/sshExec.js
+          if ("${{ matrix.ssh }}" -eq "git-ssh") { $env:SSH_CONTROL_PERSIST_DIR = "/tmp" }
+          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+      - name: Count the AttachConsole noise
+        if: always()
+        shell: pwsh
+        run: |
+          "AttachConsole lines: " + (Select-String -Path "$env:RUNNER_TEMP\integration.txt" -Pattern 'AttachConsole').Count
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          "### windows, ssh = ${{ matrix.ssh }}, remote = sshd of the runner + MSYS2 rsync, local rsync = MSYS2 rsync" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          foreach ($f in 'unit','integration') {
+            "#### $f" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+            '```' | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+            Select-String -Path "$env:RUNNER_TEMP\$f.txt" -Pattern '^\s+\d+ (passing|failing|pending)' | ForEach-Object { $_.Line } | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+            '```' | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          }
+      - name: Upload the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.ssh }}
+          path: |
+            ${{ runner.temp }}/unit.txt
+            ${{ runner.temp }}/integration.txt
