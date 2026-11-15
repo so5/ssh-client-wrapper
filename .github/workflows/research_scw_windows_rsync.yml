@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ssh: [win32-openssh, git-ssh]
+        ssh: [win32-openssh, git-ssh, msys2-ssh]
     env:
       TEST_HOST: localhost
       TEST_HOST2: localhost
@@ -36,7 +36,7 @@ jobs:
       - name: Install rsync 3.x for the remote side (MSYS2)
         run: |
           ls /c/msys64/usr/bin/pacman.exe
-          /c/msys64/usr/bin/pacman.exe -S --noconfirm rsync 2>&1 | tail -3
+          /c/msys64/usr/bin/pacman.exe -S --noconfirm rsync openssh 2>&1 | tail -3
           /c/msys64/usr/bin/rsync.exe --version | head -1
       - name: Create a key without passphrase
         run: ssh-keygen -q -t rsa -b 2048 -N '' -f "$RUNNER_TEMP/id_rsa" -C github-test-key
@@ -62,9 +62,10 @@ jobs:
           echo "C:\\msys64\\usr\\bin" >> "$GITHUB_PATH"
           if [ "${{ matrix.ssh }}" = win32-openssh ]; then
             echo "C:\\Windows\\System32\\OpenSSH" >> "$GITHUB_PATH"
-          else
+          elif [ "${{ matrix.ssh }}" = git-ssh ]; then
             echo "C:\\Program Files\\Git\\usr\\bin" >> "$GITHUB_PATH"
           fi
+          # msys2-ssh: nothing more, the ssh.exe of C:\\msys64\\usr\\bin (package openssh) is the one used
       - name: Show the tools the tests will use
         shell: pwsh
         run: |
@@ -76,6 +77,37 @@ jobs:
           ssh -v -o ControlMaster=auto -o "ControlPath=$cm" -o ControlPersist=60 -o StrictHostKeyChecking=no -o BatchMode=yes -i $env:TEST_KEYFILE "$env:TEST_USER@localhost" true
           "ControlMaster exit code: $LASTEXITCODE"
         continue-on-error: true
+      - name: MSYS2 rsync directly (without scw), with the chosen ssh
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          @'
+          W=$(cygpath -u "$RUNNER_TEMP")/rs
+          WW=$(cygpath -w "$W")
+          KEY=$(cygpath -u "$TEST_KEYFILE")
+          echo "ssh in use: $(command -v ssh)"; ssh -V
+          export RSYNC_RSH="ssh -i $KEY -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR"
+          remote="$TEST_USER@localhost"
+          rem() { ssh -i "$KEY" -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR "$remote" "$@"; }
+          case_() { echo; echo "===== $1"; shift; "$@"; echo "exit code: $?"; }
+          mkdir -p "$W/src/tree/sub" "$W/src/dir with space"; cd "$W"
+          echo one > src/a.txt; echo two > src/b.txt; echo x > src/tree/sub/c.txt; echo sp > "src/dir with space/s.txt"
+          rem 'rm -rf ~/r4w; mkdir -p ~/r4w'
+          case_ 'push: relative file' rsync src/a.txt "$remote:r4w/p1/"; rem 'ls -R ~/r4w/p1'
+          case_ 'push: MSYS-style absolute path' rsync "$W/src/a.txt" "$remote:r4w/p2/"; rem 'ls -R ~/r4w/p2'
+          case_ 'push: drive-letter absolute path (D:\...)' rsync "$WW\\src\\a.txt" "$remote:r4w/p3/"; rem 'ls -R ~/r4w/p3'
+          case_ 'push: directory contents' rsync -r src/tree/ "$remote:r4w/p4/"; rem 'ls -R ~/r4w/p4'
+          case_ 'push: dir with a space' rsync -r "src/dir with space" "$remote:r4w/p5/"; rem 'ls -R ~/r4w/p5'
+          case_ 'push: -a with --copy-unsafe-links' rsync -a --copy-unsafe-links src/tree/ "$remote:r4w/p6/"; rem 'ls -R ~/r4w/p6'
+          rem 'mkdir -p ~/r4w/pull/d; echo r1 > ~/r4w/pull/r1.txt; echo r2 > ~/r4w/pull/r2.txt; echo r3 > ~/r4w/pull/d/r3.txt'
+          mkdir -p dst1 dst2 dst3 dst4
+          case_ 'pull: file to a relative dir' rsync "$remote:r4w/pull/r1.txt" dst1/; ls dst1
+          case_ 'pull: file to a drive-letter dir' rsync "$remote:r4w/pull/r1.txt" "$WW\\dst2\\"; ls dst2
+          case_ 'pull: directory' rsync -r "$remote:r4w/pull/d/" dst3/; ls -R dst3
+          case_ 'pull: two sources' rsync "$remote:r4w/pull/r1.txt" "$remote:r4w/pull/r2.txt" dst4/; ls dst4
+          case_ 'pull: missing source (expect 23)' rsync "$remote:r4w/pull/none.txt" dst4/
+          '@ | Set-Content -Encoding ascii "$env:RUNNER_TEMP\direct.sh"
+          & C:\msys64\usr\bin\bash.exe --noprofile --norc "$env:RUNNER_TEMP\direct.sh" 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\direct.txt"
       - name: Install dependencies
         run: npm ci
       - name: Show the tools the tests will use (rsync is the MSYS2 one)
@@ -121,3 +153,4 @@ jobs:
           path: |
             ${{ runner.temp }}/unit.txt
             ${{ runner.temp }}/integration.txt
+            ${{ runner.temp }}/direct.txt
