@@ -45,12 +45,26 @@ jobs:
           "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_KEYFILE=$ssh\id_rsa" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           Get-Service ssh-agent | Format-List Name,Status,StartType
-      - name: Investigation (MSYS2 bash, PATH without any MSYS2 directory)
+      - name: Investigation (MSYS2 bash)
         shell: pwsh
         continue-on-error: true
         run: |
-          $env:PATH = "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
           & C:\msys64\usr\bin\bash.exe --noprofile --norc .github/research/msys2_pair.sh 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\pair.txt"
+      - name: Bundle (rsync.exe, ssh.exe and their dlls only) run with a PATH without MSYS2
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $b = "$env:RUNNER_TEMP\bundle"
+          $env:PATH = "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+          Get-ChildItem $b | Measure-Object Length -Sum | Format-List Count,Sum
+          & "$b\rsync.exe" --version | Select-Object -First 1
+          & "$b\ssh.exe" -V
+          $env:HOME = $env:USERPROFILE
+          "hello" | Set-Content "$env:RUNNER_TEMP\bf.txt"
+          $src = ($env:RUNNER_TEMP -replace '\\','/' -replace '^([A-Za-z]):','/$1') + "/bf.txt"
+          & "$b\rsync.exe" -e "$b\ssh.exe -o BatchMode=yes" $src "r4w-a:bundle-test/"
+          "rsync exit: $LASTEXITCODE"
+          & "$b\ssh.exe" r4w-a 'ls -l ~/bundle-test'
       - name: Installation and detection facts
         shell: pwsh
         continue-on-error: true

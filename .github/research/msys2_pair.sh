@@ -1,5 +1,6 @@
 #!/bin/bash
-# Research script, run by MSYS2 bash with a PATH that has NO MSYS2 directory (like an app launching rsync.exe).
+# Research script, run by MSYS2 bash (the harness needs coreutils; the checks with a PATH without MSYS2 are in the workflow).
+export PATH=/usr/bin:$PATH
 M=/c/msys64/usr/bin
 WP=$(cygpath -u "$USERPROFILE")
 WPW=$(cygpath -w "$WP")
@@ -26,7 +27,7 @@ run "$B/ssh.exe" -V
 du -sk "$B"
 
 sec "B1 HOME: default MSYS2 HOME behaviour"
-run bash -c 'echo HOME=$HOME; ls -la ~ 2>&1 | head -5'
+run $M/bash.exe -c 'echo HOME=$HOME; ls -la ~ 2>&1 | head -5'
 run $M/ssh.exe -G localhost | grep -iE "^(identityfile|userknownhostsfile|user) "
 echo "-- ssh with default HOME (expected: no key found)"
 run $M/ssh.exe $OPT $U@localhost 'echo remote-ok'
