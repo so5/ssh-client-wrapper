@@ -154,17 +154,11 @@ echo "-- (a) bundle layout with its own /etc: root/usr/bin + root/etc/nsswitch.c
 R=$(cygpath -u "$RUNNER_TEMP")/b2; rm -rf "$R"; mkdir -p "$R/usr/bin" "$R/etc"; cp "$B"/* "$R/usr/bin/"
 printf 'passwd: files db\ngroup: files db\ndb_home: windows\ndb_shell: /usr/bin/bash\ndb_gecos: windows\n' > "$R/etc/nsswitch.conf"
 run "$R/usr/bin/ssh.exe" -G localhost | grep -iE "^userknownhostsfile "
-echo "-- (b) the installed MSYS2: try db_home values in /etc/nsswitch.conf (modifies the install)"
-cp /c/msys64/etc/nsswitch.conf /c/msys64/etc/nsswitch.conf.bak
-echo "/etc/passwd lines for the user:"; grep -i "$U" /etc/passwd || echo "(none: user comes from the Windows account db)"
-for v in "windows" "/c/Users/%U" "windows cygwin desc"; do
-  echo "== db_home: $v"
-  sed -i "s|^db_home:.*|db_home: $v|" /c/msys64/etc/nsswitch.conf
-  $M/getent.exe passwd $U | cut -d: -f1,6
-  $M/ssh.exe -G localhost | grep -iE "^userknownhostsfile "
-  $M/bash.exe -c 'echo "unset HOME test: $(env -u HOME bash -c "echo \$HOME")"'
-done
-sed -i "s|^db_home:.*|db_home: windows|" /c/msys64/etc/nsswitch.conf
+echo "-- (b) installed MSYS2: nsswitch db_home variants had NO effect in the previous run; try a directory junction /home/<user> -> profile"
+rm -f /c/msys64/etc/nsswitch.conf.bak
+cmd.exe /c "mklink /J C:\\msys64\\home\\$U C:\\Users\\$U"
+ls -ld /home/$U/.ssh
+$M/ssh.exe -G localhost | grep -iE "^userknownhostsfile "
 echo "-- now without -F / -i / UserKnownHostsFile: alias r4w-a (IdentityFile ~/.ssh/id_rsa), default key, known_hosts"
 rm -f "$WP/.ssh/known_hosts"
 run $M/ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=accept-new r4w-a 'echo ok-via-alias-home; echo $HOME'
@@ -190,4 +184,16 @@ $M/ssh.exe r4w-a 'ls -R ~/r4w-home-test/jp ~/r4w-home-test/pf'
 echo "== missing source (expect 23)"; $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-test/none "$T/"; echo "[exit $?]"
 echo "== pull to drive-letter dir"; $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-test/plain/a.txt "$TW\\pulled\\"; echo "[exit $?]"
 echo "== pull with ./ prefix"; mkdir -p "$T/pl"; (cd "$T" && $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-test/plain/a.txt ./pl/); echo "[exit $?]"; ls -R "$T/pl"
+sec "G2 /etc/fstab mount of /home onto C:/Users instead of a junction"
+cmd.exe /c "rmdir C:\\msys64\\home\\$U"
+ls -ld /home/$U 2>&1
+echo 'C:/Users /home ntfs binary,posix=0,noacl 0 0' >> /c/msys64/etc/fstab
+$M/mount.exe | grep -i "home"
+rm -f "$WP/.ssh/known_hosts"
+run $M/ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=accept-new r4w-a 'echo ok-via-fstab-home'
+run $M/ssh.exe -o BatchMode=yes $U@localhost 'echo ok-default-key-fstab'
+echo "-- bundle with its own etc/fstab (relocatable root): root/usr/bin + root/etc/fstab"
+echo 'C:/Users /home ntfs binary,posix=0,noacl 0 0' > "$R/etc/fstab"
+run "$R/usr/bin/ssh.exe" -G localhost | grep -iE "^userknownhostsfile "
+run "$R/usr/bin/ssh.exe" -o BatchMode=yes r4w-a 'echo ok-bundle-root'
 sec "done"
