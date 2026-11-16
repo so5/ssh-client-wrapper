@@ -190,7 +190,7 @@ echo "== /etc/fstab (default)"; cat /c/msys64/etc/fstab; echo "== mount"; $M/mou
 cp /c/msys64/etc/fstab /c/msys64/etc/fstab.orig
 for line in 'C:/Users /home ntfs binary,posix=0,noacl 0 0' 'C:/Users /home ntfs binary,posix=0,user 0 0' 'C:/Users /home none binary,posix=0,noacl 0 0'; do
   echo "== fstab line: $line"
-  cp /c/msys64/etc/fstab.orig /c/msys64/etc/fstab; echo "$line" >> /c/msys64/etc/fstab
+  cp /c/msys64/etc/fstab.orig /c/msys64/etc/fstab; printf '\n%s\n' "$line" >> /c/msys64/etc/fstab; echo "-- fstab now:"; cat -A /c/msys64/etc/fstab | tail -3
   $M/mount.exe | grep -i " /home " ; ls -d /home/$U/.ssh 2>&1
   if [ -d "/home/$U/.ssh" ]; then echo "WORKS"; break; fi
 done
