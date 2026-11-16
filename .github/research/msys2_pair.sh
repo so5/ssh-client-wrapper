@@ -185,8 +185,7 @@ echo "== missing source (expect 23)"; $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-
 echo "== pull to drive-letter dir"; $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-test/plain/a.txt "$TW\\pulled\\"; echo "[exit $?]"
 echo "== pull with ./ prefix"; mkdir -p "$T/pl"; (cd "$T" && $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-test/plain/a.txt ./pl/); echo "[exit $?]"; ls -R "$T/pl"
 sec "G2 /etc/fstab mount of /home onto C:/Users instead of a junction"
-powershell.exe -NoProfile -Command "Remove-Item C:\\msys64\\home\\$U -Force"
-ls -ld /home/$U 2>&1
+rm -f /home/$U; ls -ld /home/$U 2>&1 || echo "junction removed"
 echo "== /etc/fstab (default)"; cat /c/msys64/etc/fstab; echo "== mount"; $M/mount.exe | head -20
 cp /c/msys64/etc/fstab /c/msys64/etc/fstab.orig
 for line in 'C:/Users /home ntfs binary,posix=0,noacl 0 0' 'C:/Users /home ntfs binary,posix=0,user 0 0' 'C:/Users /home none binary,posix=0,noacl 0 0'; do
