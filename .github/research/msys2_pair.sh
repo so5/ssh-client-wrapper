@@ -156,7 +156,7 @@ printf 'passwd: files db\ngroup: files db\ndb_home: windows\ndb_shell: /usr/bin/
 run "$R/usr/bin/ssh.exe" -G localhost | grep -iE "^userknownhostsfile "
 echo "-- (b) installed MSYS2: nsswitch db_home variants had NO effect in the previous run; try a directory junction /home/<user> -> profile"
 rm -f /c/msys64/etc/nsswitch.conf.bak
-cmd.exe /c "mklink /J C:\\msys64\\home\\$U C:\\Users\\$U"
+powershell.exe -NoProfile -Command "New-Item -ItemType Junction -Path C:\\msys64\\home\\$U -Target C:\\Users\\$U | Out-Null; Get-Item C:\\msys64\\home\\$U | Format-List FullName,LinkType,Target"
 ls -ld /home/$U/.ssh
 $M/ssh.exe -G localhost | grep -iE "^userknownhostsfile "
 echo "-- now without -F / -i / UserKnownHostsFile: alias r4w-a (IdentityFile ~/.ssh/id_rsa), default key, known_hosts"
@@ -185,10 +185,16 @@ echo "== missing source (expect 23)"; $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-
 echo "== pull to drive-letter dir"; $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-test/plain/a.txt "$TW\\pulled\\"; echo "[exit $?]"
 echo "== pull with ./ prefix"; mkdir -p "$T/pl"; (cd "$T" && $M/rsync.exe -e $M/ssh.exe r4w-a:r4w-home-test/plain/a.txt ./pl/); echo "[exit $?]"; ls -R "$T/pl"
 sec "G2 /etc/fstab mount of /home onto C:/Users instead of a junction"
-cmd.exe /c "rmdir C:\\msys64\\home\\$U"
+powershell.exe -NoProfile -Command "Remove-Item C:\\msys64\\home\\$U -Force"
 ls -ld /home/$U 2>&1
-echo 'C:/Users /home ntfs binary,posix=0,noacl 0 0' >> /c/msys64/etc/fstab
-$M/mount.exe | grep -i "home"
+echo "== /etc/fstab (default)"; cat /c/msys64/etc/fstab; echo "== mount"; $M/mount.exe | head -20
+cp /c/msys64/etc/fstab /c/msys64/etc/fstab.orig
+for line in 'C:/Users /home ntfs binary,posix=0,noacl 0 0' 'C:/Users /home ntfs binary,posix=0,user 0 0' 'C:/Users /home none binary,posix=0,noacl 0 0'; do
+  echo "== fstab line: $line"
+  cp /c/msys64/etc/fstab.orig /c/msys64/etc/fstab; echo "$line" >> /c/msys64/etc/fstab
+  $M/mount.exe | grep -i " /home " ; ls -d /home/$U/.ssh 2>&1
+  if [ -d "/home/$U/.ssh" ]; then echo "WORKS"; break; fi
+done
 rm -f "$WP/.ssh/known_hosts"
 run $M/ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=accept-new r4w-a 'echo ok-via-fstab-home'
 run $M/ssh.exe -o BatchMode=yes $U@localhost 'echo ok-default-key-fstab'
@@ -196,4 +202,7 @@ echo "-- bundle with its own etc/fstab (relocatable root): root/usr/bin + root/e
 echo 'C:/Users /home ntfs binary,posix=0,noacl 0 0' > "$R/etc/fstab"
 run "$R/usr/bin/ssh.exe" -G localhost | grep -iE "^userknownhostsfile "
 run "$R/usr/bin/ssh.exe" -o BatchMode=yes r4w-a 'echo ok-bundle-root'
+sec "H1 post-quantum warning: WarnWeakCrypto no (OpenSSH 10.1+) in the profile config"
+printf 'Host *\n  WarnWeakCrypto no\n' >> "$WP/.ssh/config"
+run $M/ssh.exe -F "$WP/.ssh/config" -i "$WP/.ssh/id_rsa" -o UserKnownHostsFile="$WP/.ssh/known_hosts" -o BatchMode=yes $U@localhost 'echo no-warning-expected'
 sec "done"
