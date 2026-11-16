@@ -80,7 +80,7 @@ const { spawnSync } = require("child_process");
 const env = { ...process.env, HOME: process.env.USERPROFILE, HOST: process.env.HOST, SO: process.env.SO };
 const r = spawnSync("C:\\\\msys64\\\\usr\\\\bin\\\\rsync.exe", ["-e", "C:\\\\msys64\\\\usr\\\\bin\\\\ssh.exe -o BatchMode=yes", "--version"], { env, encoding: "utf8" });
 console.log("status", r.status, (r.stdout||"").split("\n")[0], r.stderr);
-const r2 = spawnSync("C:\\\\msys64\\\\usr\\\\bin\\\\rsync.exe", ["-e", "C:\\\\msys64\\\\usr\\\\bin\\\\ssh.exe " + process.env.SO, process.env.RUNNER_TEMP.replace(/\\\\/g,"/") + "/h/f.txt", process.env.HOST + ":r4w-home-test/node/"], { env, encoding: "utf8" });
+const r2 = spawnSync("C:\\\\msys64\\\\usr\\\\bin\\\\rsync.exe", ["-e", "C:\\\\msys64\\\\usr\\\\bin\\\\ssh.exe " + process.env.SO, process.env.RUNNER_TEMP.replace(/\\\\/g,"/").replace(/^([A-Za-z]):/, (m,d)=>"/"+d.toLowerCase()) + "/h/f.txt", process.env.HOST + ":r4w-home-test/node/"], { env, encoding: "utf8" });
 console.log("node-spawn rsync status", r2.status, r2.stdout, r2.stderr);
 JS
 export HOST SO
@@ -153,11 +153,18 @@ cat /c/msys64/etc/nsswitch.conf | grep -v '^#' | grep -v '^$'
 echo "-- (a) bundle layout with its own /etc: root/usr/bin + root/etc/nsswitch.conf"
 R=$(cygpath -u "$RUNNER_TEMP")/b2; rm -rf "$R"; mkdir -p "$R/usr/bin" "$R/etc"; cp "$B"/* "$R/usr/bin/"
 printf 'passwd: files db\ngroup: files db\ndb_home: windows\ndb_shell: /usr/bin/bash\ndb_gecos: windows\n' > "$R/etc/nsswitch.conf"
-run "$R/usr/bin/ssh.exe" -G localhost | grep -iE "^(userknownhostsfile|identityfile) " | head -3
-echo "-- (b) the installed MSYS2: set db_home: windows in /etc/nsswitch.conf (modifies the install)"
+run "$R/usr/bin/ssh.exe" -G localhost | grep -iE "^userknownhostsfile "
+echo "-- (b) the installed MSYS2: try db_home values in /etc/nsswitch.conf (modifies the install)"
 cp /c/msys64/etc/nsswitch.conf /c/msys64/etc/nsswitch.conf.bak
-sed -i 's|^db_home:.*|db_home: windows|' /c/msys64/etc/nsswitch.conf; grep db_home /c/msys64/etc/nsswitch.conf
-run $M/ssh.exe -G localhost | grep -iE "^(userknownhostsfile|identityfile) " | head -3
+echo "/etc/passwd lines for the user:"; grep -i "$U" /etc/passwd || echo "(none: user comes from the Windows account db)"
+for v in "windows" "/c/Users/%U" "windows cygwin desc"; do
+  echo "== db_home: $v"
+  sed -i "s|^db_home:.*|db_home: $v|" /c/msys64/etc/nsswitch.conf
+  $M/getent.exe passwd $U | cut -d: -f1,6
+  $M/ssh.exe -G localhost | grep -iE "^userknownhostsfile "
+  $M/bash.exe -c 'echo "unset HOME test: $(env -u HOME bash -c "echo \$HOME")"'
+done
+sed -i "s|^db_home:.*|db_home: windows|" /c/msys64/etc/nsswitch.conf
 echo "-- now without -F / -i / UserKnownHostsFile: alias r4w-a (IdentityFile ~/.ssh/id_rsa), default key, known_hosts"
 rm -f "$WP/.ssh/known_hosts"
 run $M/ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=accept-new r4w-a 'echo ok-via-alias-home; echo $HOME'

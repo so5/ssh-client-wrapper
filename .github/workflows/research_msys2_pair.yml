@@ -40,6 +40,7 @@ jobs:
           Get-Content "$ssh\id_rsa.pub","$ssh\id_pass.pub" | Set-Content C:\ProgramData\ssh\administrators_authorized_keys
           icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
           New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value C:\msys64\usr\bin\bash.exe -PropertyType String -Force
+          [Environment]::SetEnvironmentVariable('Path', 'C:\msys64\usr\bin;' + [Environment]::GetEnvironmentVariable('Path','Machine'), 'Machine')
           Restart-Service sshd
           "TEST_USER=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
