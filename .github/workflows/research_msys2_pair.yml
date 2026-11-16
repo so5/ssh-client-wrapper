@@ -62,9 +62,11 @@ jobs:
           $env:HOME = $env:USERPROFILE
           "hello" | Set-Content "$env:RUNNER_TEMP\bf.txt"
           $src = ($env:RUNNER_TEMP -replace '\\','/' -replace '^([A-Za-z]):','/$1') + "/bf.txt"
-          & "$b\rsync.exe" -e "$b\ssh.exe -o BatchMode=yes" $src "r4w-a:bundle-test/"
+          $h = $env:USERPROFILE -replace '\\','/' -replace '^([A-Za-z]):','/$1'
+          $so = "-F $h/.ssh/config -o UserKnownHostsFile=$h/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o LogLevel=ERROR -i $h/.ssh/id_rsa"
+          & "$b\rsync.exe" -e "$b\ssh.exe $so" $src "$env:USERNAME@localhost:bundle-test/"
           "rsync exit: $LASTEXITCODE"
-          & "$b\ssh.exe" r4w-a 'ls -l ~/bundle-test'
+          Invoke-Expression "& '$b\ssh.exe' $so $env:USERNAME@localhost 'ls -l ~/bundle-test'"
       - name: Installation and detection facts
         shell: pwsh
         continue-on-error: true
