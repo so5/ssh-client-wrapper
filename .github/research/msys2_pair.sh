@@ -190,3 +190,4 @@ printf 'Host *\n  WarnWeakCrypto no\n' >> "$WP/.ssh/config"
 run $M/ssh.exe -F "$WP/.ssh/config" -i "$WP/.ssh/id_rsa" -o UserKnownHostsFile="$WP/.ssh/known_hosts" -o BatchMode=yes $U@localhost 'echo no-warning-expected'
 sec "done"
 # run 1794820530: with lib/winRsync.js merged
+# run 1794821789: glob fix merged
