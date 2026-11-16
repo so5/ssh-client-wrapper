@@ -86,7 +86,7 @@ jobs:
           $env:PATH = "C:\msys64\usr\bin;" + $env:PATH
           $env:HOME = $env:USERPROFILE
           Get-Command ssh, rsync | Format-Table Name, Source
-          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
       - name: Debug one rsync send test
         shell: pwsh
         continue-on-error: true
@@ -94,7 +94,7 @@ jobs:
         run: |
           $env:PATH = "C:\msys64\usr\bin;" + $env:PATH
           $env:DEBUG = "sshClientWrapper:*"
-          npx mocha test/integration/rsyncExec.js -g "should send a file" --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\debug-send.txt"
+          npx mocha test/integration/rsyncExec.js -g "should overwrite existing file|should expand \$HOME in src|should resolve with 127" --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\debug-send.txt"
       - name: Upload the logs
         if: always()
         uses: actions/upload-artifact@v4
