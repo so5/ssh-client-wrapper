@@ -35,7 +35,7 @@ jobs:
         run: |
           $ssh = "$env:USERPROFILE\.ssh"; New-Item -ItemType Directory -Force $ssh | Out-Null
           $kg = 'C:\Windows\System32\OpenSSH\ssh-keygen.exe'
-          & $kg -q -t rsa -b 2048 -N '""' -f "$ssh\id_rsa" -C plain
+          & $kg -q -t rsa -b 2048 -N '' -f "$ssh\id_rsa" -C plain
           & $kg -q -t ed25519 -N 'pass123' -f "$ssh\id_pass" -C withpass
           Get-Content "$ssh\id_rsa.pub","$ssh\id_pass.pub" | Set-Content C:\ProgramData\ssh\administrators_authorized_keys
           icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
