@@ -1,0 +1,80 @@
+name: research MSYS2 rsync+ssh pair on windows
+
+# Research only (branch research/scw-windows-rsync): checks the unverified points of using MSYS2 rsync + MSYS2 ssh as the Windows default.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/scw-windows-rsync
+    paths:
+      - .github/workflows/research_msys2_pair.yml
+      - .github/research/msys2_pair.sh
+jobs:
+  pair:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      TEST_HOST: localhost
+      TEST_HOST2: localhost
+      TEST_PORT: 22
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Install MSYS2 rsync and openssh
+        shell: pwsh
+        run: |
+          C:\msys64\usr\bin\pacman.exe -S --noconfirm rsync openssh 2>&1 | Select-Object -Last 3
+          # the tests use /home/testuser/testrc on the remote
+          New-Item -ItemType Directory -Force C:\msys64\home\testuser | Out-Null
+      - name: Keys in the Windows profile and sshd
+        shell: pwsh
+        run: |
+          $ssh = "$env:USERPROFILE\.ssh"; New-Item -ItemType Directory -Force $ssh | Out-Null
+          $kg = 'C:\Windows\System32\OpenSSH\ssh-keygen.exe'
+          & $kg -q -t rsa -b 2048 -N '""' -f "$ssh\id_rsa" -C plain
+          & $kg -q -t ed25519 -N 'pass123' -f "$ssh\id_pass" -C withpass
+          Get-Content "$ssh\id_rsa.pub","$ssh\id_pass.pub" | Set-Content C:\ProgramData\ssh\administrators_authorized_keys
+          icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+          New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value C:\msys64\usr\bin\bash.exe -PropertyType String -Force
+          Restart-Service sshd
+          "TEST_USER=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_KEYFILE=$ssh\id_rsa" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          Get-Service ssh-agent | Format-List Name,Status,StartType
+      - name: Investigation (MSYS2 bash, PATH without any MSYS2 directory)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $env:PATH = "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+          & C:\msys64\usr\bin\bash.exe --noprofile --norc .github/research/msys2_pair.sh 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\pair.txt"
+      - name: Installation and detection facts
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Get-Command winget -ErrorAction SilentlyContinue | Format-List Source
+          winget --version 2>&1
+          winget search MSYS2 --accept-source-agreements 2>&1 | Select-Object -First 15
+          choco list --local-only msys2 2>&1
+          Get-ChildItem C:\msys64 -Directory | Select-Object -First 20 Name
+      - name: Integration tests with the fixes (HOME=USERPROFILE, /home/testuser exists, testrc not stripped)
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          npm ci
+          $env:PATH = "C:\msys64\usr\bin;" + $env:PATH
+          $env:HOME = $env:USERPROFILE
+          Get-Command ssh, rsync | Format-Table Name, Source
+          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+      - name: Upload the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-pair
+          path: |
+            ${{ runner.temp }}/pair.txt
+            ${{ runner.temp }}/integration.txt
