@@ -87,6 +87,14 @@ jobs:
           $env:HOME = $env:USERPROFILE
           Get-Command ssh, rsync | Format-Table Name, Source
           npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+      - name: Debug one rsync send test
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          $env:PATH = "C:\msys64\usr\bin;" + $env:PATH
+          $env:DEBUG = "sshClientWrapper:*"
+          npx mocha test/integration/rsyncExec.js -g "should send a file" --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\debug-send.txt"
       - name: Upload the logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -95,3 +103,4 @@ jobs:
           path: |
             ${{ runner.temp }}/pair.txt
             ${{ runner.temp }}/integration.txt
+            ${{ runner.temp }}/debug-send.txt
