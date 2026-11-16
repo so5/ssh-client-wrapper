@@ -69,28 +69,28 @@ describe("test for ssh execution", function () {
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null, "echo foo");
       expect(rt).to.equal(0);
       expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(/^foo\nhoge\n/);
+      expect(sshout).to.be.calledWithMatch(/^foo\r?\nhoge\r?\n/);
     });
     it("should execute 2 command by hostInfo.prependCmd ", async ()=>{
       hostInfo.prependCmd = "echo foo";
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null);
       expect(rt).to.equal(0);
       expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(/^foo\nhoge\n/);
+      expect(sshout).to.be.calledWithMatch(/^foo\r?\nhoge\r?\n/);
       delete hostInfo.prependCmd;
     });
     it("should execute 2 command by rcfile", async ()=>{
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, rcfilePath);
       expect(rt).to.equal(0);
       expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(/^this is test rcfile\nhoge\n/);
+      expect(sshout).to.be.calledWithMatch(/^this is test rcfile\r?\nhoge\r?\n/);
     });
     it("should execute 2 command by hostInfo.prependCmd ", async ()=>{
       hostInfo.rcfile = rcfilePath;
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null);
       expect(rt).to.equal(0);
       expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(/^this is test rcfile\nhoge\n/);
+      expect(sshout).to.be.calledWithMatch(/^this is test rcfile\r?\nhoge\r?\n/);
       delete hostInfo.rcfile;
     });
     //please note that exec() resolves with non-zero value
