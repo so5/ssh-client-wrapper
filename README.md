@@ -108,6 +108,19 @@ Downloads files or directories from the remote host using `rsync`.
 *   `replaceRetryableExitCodes` (boolean, optional): If `true`, `retryableExitCodes` replaces the built-in default instead of adding to it. Defaults to `false`.
 *   Returns: `Promise<void>`
 
+### rsync on Windows
+
+On Windows, `.send()` / `.recv()` work with the `rsync.exe` of MSYS2 (or Cygwin) found in `PATH`. The wrapper detects it by `msys-2.0.dll` (or `cygwin1.dll`) next to `rsync.exe` and then:
+
+*   uses the `ssh.exe` next to `rsync.exe` for the rsync transport (it does not work with the OpenSSH of Windows or Git for Windows),
+*   converts local paths and file paths in the ssh options (`D:\dir` -> `/d/dir`),
+*   passes `-F <profile>\.ssh\config` and `-oUserKnownHostsFile=<profile>\.ssh\known_hosts` explicitly (the ssh of MSYS2 takes its home from the MSYS2 user database, not from the Windows profile). Give your own `-F` or `UserKnownHostsFile` in `sshOpt` to override.
+
+Limitations on Windows:
+
+*   `~` and relative `Include` paths in the ssh config are **not resolved** for the ssh run by rsync (they are resolved against the MSYS2 home, not the Windows profile), although they work for the ssh run by the wrapper itself. `Include` ignores a missing file silently, so use absolute paths (e.g. `C:/Users/you/.ssh/conf.d/*`) in the config, or put the setting in the config file directly.
+*   The ssh-agent of Windows (named pipe) cannot be used by the ssh of MSYS2.
+
 ### Remote paths of `.send()` / `.recv()`
 
 A remote path (`dst` of `.send()`, `src` of `.recv()`) is interpreted by the login shell of the remote host, whatever the version or the implementation of the local `rsync` is:

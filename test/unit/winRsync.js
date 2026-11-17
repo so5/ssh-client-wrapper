@@ -2,7 +2,7 @@
 import { expect } from "chai";
 
 //testee
-import { detectLocalRsync, toRsyncPath, makeRshCommand } from "../../lib/winRsync.js";
+import { detectLocalRsync, toRsyncPath, makeRshCommand, homeSshOptions } from "../../lib/winRsync.js";
 
 describe("test winRsync", ()=>{
   const files = (list)=>{
@@ -49,24 +49,50 @@ describe("test winRsync", ()=>{
     });
   });
   describe("#makeRshCommand", ()=>{
+    const none = { home: String.raw`C:\Users\a`, isFile: ()=>{ return false; }, isDir: ()=>{ return false; } };
     it("should join the command and the options as before without MSYS2/Cygwin", ()=>{
       expect(makeRshCommand("ssh", ["-l", "user", "-p", 22], null)).to.equal("ssh -l user -p 22");
     });
     it("should use the ssh next to rsync.exe", ()=>{
       const local = { style: "msys", ssh: String.raw`C:\msys64\usr\bin\ssh.exe` };
 
-      expect(makeRshCommand("ssh", ["-l", "user"], local)).to.equal("/c/msys64/usr/bin/ssh.exe -l user");
+      expect(makeRshCommand("ssh", ["-l", "user"], local, none)).to.equal("/c/msys64/usr/bin/ssh.exe -l user");
     });
     it("should quote a path which has a space", ()=>{
       const local = { style: "msys", ssh: String.raw`C:\Program Files\r4w\ssh.exe` };
 
-      expect(makeRshCommand("ssh", [], local)).to.equal("\"/c/Program Files/r4w/ssh.exe\" ");
+      expect(makeRshCommand("ssh", [], local, none)).to.equal("\"/c/Program Files/r4w/ssh.exe\" ");
     });
     it("should convert the key file and the control path", ()=>{
       const local = { style: "msys", ssh: null };
-      const rt = makeRshCommand("ssh", ["-i", String.raw`C:\Users\a b\.ssh\id_rsa`, "-oControlPath=C:\\tmp/scw-%C", "-oControlPersist=60", 22], local);
+      const rt = makeRshCommand("ssh", ["-i", String.raw`C:\Users\a b\.ssh\id_rsa`, "-oControlPath=C:\\tmp/scw-%C", "-oControlPersist=60", 22], local, none);
 
       expect(rt).to.equal("ssh -i \"/c/Users/a b/.ssh/id_rsa\" -oControlPath=/c/tmp/scw-%C -oControlPersist=60 22");
+    });
+    it("should give config and known_hosts of the Windows profile", ()=>{
+      const local = { style: "msys", ssh: null };
+      const home = { home: String.raw`C:\Users\a b`, isFile: ()=>{ return true; }, isDir: ()=>{ return true; }, readFile: ()=>{ return "Host x\n  User y\n"; } };
+      const rt = makeRshCommand("ssh", ["-l", "user"], local, home);
+
+      expect(rt).to.equal("ssh -l user -F \"/c/Users/a b/.ssh/config\" -oUserKnownHostsFile=\"/c/Users/a b/.ssh/known_hosts\"");
+    });
+  });
+  describe("#homeSshOptions", ()=>{
+    const base = { home: String.raw`C:\Users\a`, isFile: ()=>{ return true; }, isDir: ()=>{ return true; }, readFile: ()=>{ return ""; } };
+
+    it("should add -F and UserKnownHostsFile", ()=>{
+      expect(homeSshOptions([], base)).to.deep.equal(["-F", String.raw`C:\Users\a\.ssh\config`, String.raw`-oUserKnownHostsFile=C:\Users\a\.ssh\known_hosts`]);
+    });
+    it("should not add -F if config does not exist", ()=>{
+      const opt = { ...base, isFile: ()=>{ return false; } };
+
+      expect(homeSshOptions([], opt)).to.deep.equal([String.raw`-oUserKnownHostsFile=C:\Users\a\.ssh\known_hosts`]);
+    });
+    it("should not add anything if .ssh does not exist", ()=>{
+      expect(homeSshOptions([], { ...base, isFile: ()=>{ return false; }, isDir: ()=>{ return false; } })).to.deep.equal([]);
+    });
+    it("should respect -F and UserKnownHostsFile given by user", ()=>{
+      expect(homeSshOptions(["-F", "x", "-oUserKnownHostsFile=y"], base)).to.deep.equal([]);
     });
   });
 });
