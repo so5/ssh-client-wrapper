@@ -1,0 +1,78 @@
+name: run integration test (windows)
+
+# Integration tests on Windows with MSYS2 rsync + MSYS2 ssh against the sshd of the runner itself.
+# Informational: this workflow is not a required check and is NOT called by release.yml (no "needs"),
+# so a failure here never blocks or changes a release. The result is written to the job summary.
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - lib/**
+      - test/**
+      - package.json
+      - .github/workflows/run_test_windows.yml
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  integration-windows:
+    name: integration (windows, msys2 rsync+ssh)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      TEST_HOST: localhost
+      TEST_HOST2: localhost
+      TEST_PORT: 22
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Install MSYS2 rsync and openssh
+        shell: pwsh
+        run: |
+          C:\msys64\usr\bin\pacman.exe -S --noconfirm rsync openssh 2>&1 | Select-Object -Last 3
+          # the tests use /home/testuser/testrc on the remote
+          New-Item -ItemType Directory -Force C:\msys64\home\testuser | Out-Null
+      - name: Keys in the Windows profile and sshd of the runner
+        shell: pwsh
+        run: |
+          $ssh = "$env:USERPROFILE\.ssh"; New-Item -ItemType Directory -Force $ssh | Out-Null
+          & 'C:\Windows\System32\OpenSSH\ssh-keygen.exe' -q -t rsa -b 2048 -N '' -f "$ssh\id_rsa" -C plain
+          Get-Content "$ssh\id_rsa.pub" | Set-Content C:\ProgramData\ssh\administrators_authorized_keys
+          icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+          # the remote shell and rsync of the remote side are those of MSYS2
+          New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value C:\msys64\usr\bin\bash.exe -PropertyType String -Force
+          [Environment]::SetEnvironmentVariable('Path', 'C:\msys64\usr\bin;' + [Environment]::GetEnvironmentVariable('Path','Machine'), 'Machine')
+          Restart-Service sshd
+          "TEST_USER=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "TEST_KEYFILE=$ssh\id_rsa" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - run: npm ci
+      - name: Run integration tests
+        id: it
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $env:PATH = "C:\msys64\usr\bin;" + $env:PATH
+          # the suite "master connection which is gone" hangs on Windows (issue #76)
+          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          $t = Get-Content "$env:RUNNER_TEMP\integration.txt" -ErrorAction SilentlyContinue
+          $lines = $t | Select-String -Pattern '^\s+\d+ (passing|failing|pending)'
+          "### Windows integration (informational, does not affect the release)" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          "outcome of the test step: ${{ steps.it.outcome }}" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          $lines | ForEach-Object { $_.Line.Trim() } | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-integration-log
+          path: ${{ runner.temp }}/integration.txt
+          retention-days: 7
