@@ -1,3 +1,10 @@
+# [3.4.0](https://github.com/so5/ssh-client-wrapper/compare/v3.3.4...v3.4.0) (2026-11-17)
+
+
+### Features
+
+* use MSYS2/Cygwin rsync with its own ssh and converted paths on Windows ([#85](https://github.com/so5/ssh-client-wrapper/issues/85)) ([2f5a92a](https://github.com/so5/ssh-client-wrapper/commit/2f5a92aa668e3de1504961fe101467758d227392))
+
 ## [3.3.4](https://github.com/so5/ssh-client-wrapper/compare/v3.3.3...v3.3.4) (2026-11-13)
 
 
