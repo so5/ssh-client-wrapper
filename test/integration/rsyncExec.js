@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
+import { EOL } from "os";
 import util from "util";
 import { exec as exec_ } from "node:child_process";
 const exec = util.promisify(exec_);
@@ -49,7 +50,7 @@ const defaultMaxRetry = 3;
 const formatLsOutput = (array)=>{
   const rt = [];
   for (const e of array) {
-    rt.push(...e.split("\n"));
+    rt.push(...e.split(EOL));
   }
   return rt.filter((e)=>{
     return e !== "";
