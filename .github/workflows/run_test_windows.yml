@@ -53,14 +53,17 @@ jobs:
           "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_KEYFILE=$ssh\id_rsa" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - run: npm ci
-      - name: Run integration tests
+      - name: Run integration tests (MSYS2 at the END of PATH, one mocha per file)
         id: it
         shell: pwsh
         continue-on-error: true
         run: |
-          $env:PATH = "C:\msys64\usr\bin;" + $env:PATH
-          # the suite "master connection which is gone" hangs on Windows (issue #76)
-          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+          $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
+          Get-Command ssh, rsync | Format-Table Name, Source
+          foreach ($f in Get-ChildItem test/integration -Filter *.js) {
+            "=== $($f.Name)" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\integration.txt"
+            npx mocha $f.FullName --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\integration.txt"
+          }
       - name: Summary
         if: always()
         shell: pwsh
