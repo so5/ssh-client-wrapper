@@ -61,6 +61,7 @@ jobs:
           # MSYS2 goes to the END of PATH: ssh of scw itself is the OpenSSH of Windows (it uses the Windows profile),
           # and rsync (found only in MSYS2) is paired with the ssh.exe next to it by the wrapper
           $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
+          Get-Command ssh, rsync | Format-Table Name, Source
           # the suite "master connection which is gone" hangs on Windows (issue #76)
           npx mocha --recursive test/integration --bail --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
       - name: Summary
