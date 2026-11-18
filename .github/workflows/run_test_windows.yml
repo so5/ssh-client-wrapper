@@ -62,7 +62,7 @@ jobs:
           # and rsync (found only in MSYS2) is paired with the ssh.exe next to it by the wrapper
           $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
           Get-Command ssh, rsync | Format-Table Name, Source
-          # one mocha per file: a failing hook only stops its own file
+          # one mocha per file: a crash or hang of the process in one file does not lose the results of the others, and the summary has the counts per file
           # the suite "master connection which is gone" hangs on Windows (issue #76)
           foreach ($f in Get-ChildItem test/integration -Filter *.js) {
             "=== $($f.Name)" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\integration.txt"
