@@ -96,7 +96,11 @@ describe("test for ssh execution", function () {
     //please note that exec() resolves with non-zero value
     //(126 permission deny or 127 file not found)
     //but does not reject in following 2 cases
-    it("should not execute command which do not have exec permission", async ()=>{
+    it("should not execute command which do not have exec permission", async function () {
+      //chmod ugo-x does not remove the execute permission on NTFS
+      if (process.platform === "win32") {
+        this.skip();
+      }
       await sshExec(hostInfo, "echo echo hoge >hoge");
       await sshExec(hostInfo, "chmod ugo-x hoge");
       const rt = await sshExec(hostInfo, "./hoge");
