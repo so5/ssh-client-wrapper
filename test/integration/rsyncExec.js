@@ -31,6 +31,7 @@ import { checkRsyncVersion, send, recv, remoteToRemoteCopy } from "../../lib/rsy
 import { sshExec, disconnect } from "../../lib/sshExec.js";
 import hostInfo, { hostInfo2, hostInfo2Verify } from "../testUtil/hostInfo.js";
 import { requireTestHosts } from "./guard.js";
+import { detectRemoteOs, remotePath } from "../testUtil/remoteOs.js";
 import {
   clearLocalTestFiles,
   clearRemoteTestFiles,
@@ -75,7 +76,10 @@ describe("test rsync exec", function () {
     rt.push(data);
   };
   let remoteHome;
+  //path module which matches the remote host (the tests are run against Linux for now)
+  let rp = path.posix;
   before(async ()=>{
+    rp = remotePath(await detectRemoteOs(hostInfo));
     await sshExec(hostInfo, "pwd", 0, (data)=>{
       remoteHome = data.trim();
     });
@@ -126,47 +130,47 @@ describe("test rsync exec", function () {
         expect(formatLsOutput(rt)).to.have.members(["piyo"]);
       });
       it("should accept relative src file and absolute dst dir name", async ()=>{
-        await send(hostInfo, [localFiles[0]], `${path.posix.join(remoteHome, remoteEmptyDir)}/`, [], 0);
+        await send(hostInfo, [localFiles[0]], `${rp.join(remoteHome, remoteEmptyDir)}/`, [], 0);
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo"]);
       });
       it("should accept absolute src file and absolute dst dir name", async ()=>{
-        await send(hostInfo, [path.resolve(localFiles[0])], path.posix.join(remoteHome, remoteEmptyDir), [], 0);
+        await send(hostInfo, [path.resolve(localFiles[0])], rp.join(remoteHome, remoteEmptyDir), [], 0);
 
         await sshExec(hostInfo, `ls ${remoteEmptyDir}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo"]);
       });
       it("should accept relative src file and relative dst file name", async ()=>{
-        await send(hostInfo, [localFiles[0]], path.posix.join(remoteEmptyDir, "hoge"), [], 0);
+        await send(hostInfo, [localFiles[0]], rp.join(remoteEmptyDir, "hoge"), [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, "hoge")}`, 0, output);
         expect(formatLsOutput(rt.map((e)=>{
-          return path.posix.basename(e);
+          return rp.basename(e);
         }))).to.have.members(["hoge"]);
       });
       it("should accept absolute src file and relative dst file name", async ()=>{
-        await send(hostInfo, [path.resolve(localFiles[0])], path.posix.join(remoteEmptyDir, "hoge"), [], 0);
+        await send(hostInfo, [path.resolve(localFiles[0])], rp.join(remoteEmptyDir, "hoge"), [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, "hoge")}`, 0, output);
         expect(formatLsOutput(rt.map((e)=>{
-          return path.posix.basename(e);
+          return rp.basename(e);
         }))).to.have.members(["hoge"]);
       });
       it("should accept relative src file and absolute dst file name", async ()=>{
-        await send(hostInfo, [localFiles[0]], path.posix.join(remoteHome, remoteEmptyDir, "hoge"), [], 0);
+        await send(hostInfo, [localFiles[0]], rp.join(remoteHome, remoteEmptyDir, "hoge"), [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, "hoge")}`, 0, output);
         expect(formatLsOutput(rt.map((e)=>{
-          return path.posix.basename(e);
+          return rp.basename(e);
         }))).to.have.members(["hoge"]);
       });
       it("should accept absolute src file and absolute dst file name", async ()=>{
-        await send(hostInfo, [path.resolve(localFiles[0])], path.posix.join(remoteHome, remoteEmptyDir, "hoge"), [], 0);
+        await send(hostInfo, [path.resolve(localFiles[0])], rp.join(remoteHome, remoteEmptyDir, "hoge"), [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, "hoge")}`, 0, output);
         expect(formatLsOutput(rt.map((e)=>{
-          return path.posix.basename(e);
+          return rp.basename(e);
         }))).to.have.members(["hoge"]);
       });
 
@@ -192,11 +196,11 @@ describe("test rsync exec", function () {
         return expect(send(hostInfo, [localFiles[0]], `${remoteEmptyDir}/a b/`, [], 0)).to.be.rejectedWith("dst must be expanded to exactly one path");
       });
       it("should overwrite existing file", async ()=>{
-        const target = path.posix.join(remoteEmptyDir, "hoge");
+        const target = rp.join(remoteEmptyDir, "hoge");
         await send(hostInfo, [localFiles[0]], target, [], 0);
         await sshExec(hostInfo, `ls ${target}`, 0, output);
         expect(formatLsOutput(rt.map((e)=>{
-          return path.posix.basename(e);
+          return rp.basename(e);
         }))).to.have.members(["hoge"]);
         rt.splice(0, rt.length);
 
@@ -206,80 +210,80 @@ describe("test rsync exec", function () {
         await send(hostInfo, [localFiles[1]], target, [], 0);
         await sshExec(hostInfo, `ls ${target}`, 0, output);
         expect(formatLsOutput(rt.map((e)=>{
-          return path.posix.basename(e);
+          return rp.basename(e);
         }))).to.have.members(["hoge"]);
 
         rt.splice(0, rt.length);
         await sshExec(hostInfo, `cat ${target}`, 0, output);
-        expect(formatLsOutput(rt)).to.have.members(["ARssh_testLocalDir/bar"]);
+        expect(formatLsOutput(rt)).to.have.members([localFiles[1]]);
       });
     });
     describe("send directory tree", ()=>{
       it("should accept relative src dirname and relative dst dirname", async ()=>{
         await send(hostInfo, [localRoot], remoteEmptyDir, [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should accept absolute src dirname and relative dst dirname", async ()=>{
         await send(hostInfo, [path.resolve(localRoot)], remoteEmptyDir, [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should accept relative src dirname and absolute dst dirname", async ()=>{
-        await send(hostInfo, [localRoot], path.posix.join(remoteHome, remoteEmptyDir), [], 0);
+        await send(hostInfo, [localRoot], rp.join(remoteHome, remoteEmptyDir), [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should accept absolute src dirname and absolute dst dirname", async ()=>{
-        await send(hostInfo, [path.resolve(localRoot)], path.posix.join(remoteHome, remoteEmptyDir), [], 0);
+        await send(hostInfo, [path.resolve(localRoot)], rp.join(remoteHome, remoteEmptyDir), [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
       //only option need special treatment in rsyncExec. it's hard to set in WHEEL
       it.skip("[not implemented] should send directory tree if only filter matched", async ()=>{
         await send(hostInfo, [localRoot], remoteEmptyDir, [`--include=${localRoot}`, `--include=${localRoot}/ba*`, `--include=${localRoot}/hoge/*`, "--exclude=*"], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["hoge", "bar", "baz"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should send directory tree if exclude filter not matched", async ()=>{
         await send(hostInfo, [localRoot], remoteEmptyDir, ["--exclude=ba*", "--exclude=hoge*}"], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "hoge", "huga"]);
       });
       it.skip("[not implemented] should send directory tree if only filter matched but exclude filter not matched", async ()=>{
         await send(hostInfo, [localRoot], remoteEmptyDir, "*/{ba*,hoge/*}", "**/poyo", [], 0);
 
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot)}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["hoge", "bar", "baz"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo, `ls ${path.posix.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
+        await sshExec(hostInfo, `ls ${rp.join(remoteEmptyDir, localRoot, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo"]);
       });
       it("shoud not send empty directory with -m option", async ()=>{
@@ -297,11 +301,11 @@ describe("test rsync exec", function () {
     });
     describe("error case", ()=>{
       it("should not send directory to existing file path", ()=>{
-        return expect(send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0)).to.be.rejected;
+        return expect(send(hostInfo, [localRoot], rp.join(remoteRoot, "foo"), [], 0)).to.be.rejected;
       });
       it("should not retry by default (exit code 3 is not in the built-in retryable list)", async ()=>{
         try {
-          await send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0);
+          await send(hostInfo, [localRoot], rp.join(remoteRoot, "foo"), [], 0);
           expect.fail("should have thrown");
         } catch (e) {
           expect(e.rt).to.equal(3);
@@ -312,7 +316,7 @@ describe("test rsync exec", function () {
         this.timeout(15000);
 
         try {
-          await send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0, [3]);
+          await send(hostInfo, [localRoot], rp.join(remoteRoot, "foo"), [], 0, [3]);
           expect.fail("should have thrown");
         } catch (e) {
           expect(e.rt).to.equal(3);
@@ -324,7 +328,7 @@ describe("test rsync exec", function () {
         this.timeout(15000);
 
         try {
-          await send(hostInfo, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0, [3], true);
+          await send(hostInfo, [localRoot], rp.join(remoteRoot, "foo"), [], 0, [3], true);
           expect.fail("should have thrown");
         } catch (e) {
           expect(e.rt).to.equal(3);
@@ -335,7 +339,7 @@ describe("test rsync exec", function () {
         this.timeout(15000);
         const hostInfoWithRetry = { ...hostInfo, retryableExitCodes: [3] };
         try {
-          await send(hostInfoWithRetry, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0);
+          await send(hostInfoWithRetry, [localRoot], rp.join(remoteRoot, "foo"), [], 0);
           expect.fail("should have thrown");
         } catch (e) {
           expect(e.rt).to.equal(3);
@@ -345,7 +349,7 @@ describe("test rsync exec", function () {
       it("method-level retryableExitCodes should fully override hostInfo-level setting", async ()=>{
         const hostInfoWithRetry = { ...hostInfo, retryableExitCodes: [3] };
         try {
-          await send(hostInfoWithRetry, [localRoot], path.posix.join(remoteRoot, "foo"), [], 0, [99], true);
+          await send(hostInfoWithRetry, [localRoot], rp.join(remoteRoot, "foo"), [], 0, [99], true);
           expect.fail("should have thrown");
         } catch (e) {
           expect(e.rt).to.equal(3);
@@ -363,7 +367,7 @@ describe("test rsync exec", function () {
         expect(rt2).to.have.members(["piyo"]);
       });
       it("should accept absolute src file and relative dst dir name", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteHome, remoteFiles[3])], localEmptyDir, [], 0);
+        await recv(hostInfo, [rp.join(remoteHome, remoteFiles[3])], localEmptyDir, [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["piyo"]);
@@ -375,7 +379,7 @@ describe("test rsync exec", function () {
         expect(rt2).to.have.members(["piyo"]);
       });
       it("should accept absolute src file and absolute dst dir name", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteHome, remoteFiles[3])], path.resolve(localEmptyDir), [], 0);
+        await recv(hostInfo, [rp.join(remoteHome, remoteFiles[3])], path.resolve(localEmptyDir), [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["piyo"]);
@@ -387,7 +391,7 @@ describe("test rsync exec", function () {
         expect(rt2).to.have.members(["hoge"]);
       });
       it("should accept absolute src file and relative dst file name", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteHome, remoteFiles[0])], path.join(localEmptyDir, "hoge"), [], 0);
+        await recv(hostInfo, [rp.join(remoteHome, remoteFiles[0])], path.join(localEmptyDir, "hoge"), [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["hoge"]);
@@ -399,25 +403,25 @@ describe("test rsync exec", function () {
         expect(rt2).to.have.members(["hoge"]);
       });
       it("should accept absolute src file and absolute dst file name", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteHome, remoteFiles[0])], path.resolve(localEmptyDir, "hoge"), [], 0);
+        await recv(hostInfo, [rp.join(remoteHome, remoteFiles[0])], path.resolve(localEmptyDir, "hoge"), [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["hoge"]);
       });
       it("should accept glob pattern as src", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteRoot, "b*")], path.resolve(localEmptyDir), [], 0);
+        await recv(hostInfo, [rp.join(remoteRoot, "b*")], path.resolve(localEmptyDir), [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["bar", "baz"]);
       });
       it("should accept glob pattern as src", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteRoot, "*/p[iu]yo")], path.resolve(localEmptyDir), [], 0);
+        await recv(hostInfo, [rp.join(remoteRoot, "*/p[iu]yo")], path.resolve(localEmptyDir), [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["piyo", "puyo"]);
       });
       it("should accept multiple glob patterns as src", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteRoot, "hoge/p[iu]yo"), path.posix.join(remoteRoot, "foo")], path.resolve(localEmptyDir), [], 0);
+        await recv(hostInfo, [rp.join(remoteRoot, "hoge/p[iu]yo"), rp.join(remoteRoot, "foo")], path.resolve(localEmptyDir), [], 0);
 
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["piyo", "puyo", "foo"]);
@@ -478,7 +482,7 @@ describe("test rsync exec", function () {
     });
     describe("recieve directory tree", ()=>{
       it("should get directory tree which match specified glob", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteRoot, "?o*")], localEmptyDir, [], 0);
+        await recv(hostInfo, [rp.join(remoteRoot, "?o*")], localEmptyDir, [], 0);
 
         let rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["foo", "hoge"]);
@@ -488,15 +492,15 @@ describe("test rsync exec", function () {
       it("should accept relative src dirname and relative dst dirname", async ()=>{
         await recv(hostInfo, [remoteRoot], localEmptyDir, [], 0);
 
-        let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
+        let rt2 = await fs.readdir(rp.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should accept absolute src dirname and relative dst dirname", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteHome, remoteRoot)], localEmptyDir, [], 0);
+        await recv(hostInfo, [rp.join(remoteHome, remoteRoot)], localEmptyDir, [], 0);
 
-        let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
+        let rt2 = await fs.readdir(rp.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
@@ -504,15 +508,15 @@ describe("test rsync exec", function () {
       it("should accept relative src dirname and absolute dst dirname", async ()=>{
         await recv(hostInfo, [remoteRoot], path.resolve(localEmptyDir), [], 0);
 
-        let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
+        let rt2 = await fs.readdir(rp.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
       });
       it("should accept absolute src dirname and absolute dst dirname", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteHome, remoteRoot)], path.resolve(localEmptyDir), [], 0);
+        await recv(hostInfo, [rp.join(remoteHome, remoteRoot)], path.resolve(localEmptyDir), [], 0);
 
-        let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
+        let rt2 = await fs.readdir(rp.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
@@ -520,7 +524,7 @@ describe("test rsync exec", function () {
       it.skip("[not implemented] should recv files which matches only filter", async ()=>{
         await recv(hostInfo, [remoteRoot], localEmptyDir, "*/{ba*,hoge/*}", [], 0);
 
-        let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
+        let rt2 = await fs.readdir(rp.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["bar", "baz", "hoge"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["piyo", "puyo", "poyo"]);
@@ -528,13 +532,13 @@ describe("test rsync exec", function () {
       it("should not recv files which matches exclude filter", async ()=>{
         await recv(hostInfo, [remoteRoot], localEmptyDir, ["--exclude=*/ba*", "--exclude=hoge"], 0);
 
-        const rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
+        const rt2 = await fs.readdir(rp.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["foo", "huga"]);
       });
       it.skip("[not implemented] should recv files which matches only filter but should not recv which matches exclude filter", async ()=>{
         await recv(hostInfo, [remoteRoot], localEmptyDir, "*/{ba*,hoge/*}", "**/piyo", [], 0);
 
-        let rt2 = await fs.readdir(path.posix.join(localEmptyDir, remoteRoot));
+        let rt2 = await fs.readdir(rp.join(localEmptyDir, remoteRoot));
         expect(rt2).to.have.members(["bar", "baz", "hoge"]);
         rt2 = await fs.readdir(path.join(localEmptyDir, remoteRoot, "hoge"));
         expect(rt2).to.have.members(["puyo", "poyo"]);
@@ -542,14 +546,14 @@ describe("test rsync exec", function () {
     });
     describe("degradation check", ()=>{
       it("should recieve multiple files from remote machine", async ()=>{
-        await recv(hostInfo, [path.posix.join(remoteRoot, "foo"),
-          path.posix.join(remoteRoot, "bar"), path.posix.join(remoteRoot, "baz")], localEmptyDir, [], 0);
+        await recv(hostInfo, [rp.join(remoteRoot, "foo"),
+          rp.join(remoteRoot, "bar"), rp.join(remoteRoot, "baz")], localEmptyDir, [], 0);
         const rt2 = await fs.readdir(localEmptyDir);
         expect(rt2).to.have.members(["foo", "bar", "baz"]);
       });
       it("should create all missing levels of dst dir for multiple sources", async ()=>{
         const dst = path.join(localEmptyDir, "a", "b");
-        await recv(hostInfo, [path.posix.join(remoteRoot, "foo"), path.posix.join(remoteRoot, "bar")], dst, [], 0);
+        await recv(hostInfo, [rp.join(remoteRoot, "foo"), rp.join(remoteRoot, "bar")], dst, [], 0);
         const rt2 = await fs.readdir(dst);
         expect(rt2).to.have.members(["foo", "bar"]);
       });
@@ -648,14 +652,14 @@ describe("test rsync exec", function () {
       });
 
       it("should copy absolute src file to absolute dst dir", async ()=>{
-        await remoteToRemoteCopy(hostInfo, [path.posix.join(remoteHome, remoteFiles[0])], dstHostInfo, path.posix.join(remoteHome, dstRemoteEmptyDir), [], 0);
+        await remoteToRemoteCopy(hostInfo, [rp.join(remoteHome, remoteFiles[0])], dstHostInfo, rp.join(remoteHome, dstRemoteEmptyDir), [], 0);
 
         await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo"]);
       });
 
       it("should copy file to a new filename", async ()=>{
-        const targetFile = path.posix.join(dstRemoteEmptyDir, "copied_file");
+        const targetFile = rp.join(dstRemoteEmptyDir, "copied_file");
         await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstHostInfo, targetFile, [], 0);
 
         await sshExec(hostInfo2Verify, `ls ${dstRemoteEmptyDir}`, 0, output);
@@ -674,11 +678,11 @@ describe("test rsync exec", function () {
       it("should copy directory and its contents", async ()=>{
         await remoteToRemoteCopy(hostInfo, [remoteRoot], dstHostInfo, `${dstRemoteEmptyDir}/`, [], 0);
 
-        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, remoteRoot)}`, 0, output);
+        await sshExec(hostInfo2Verify, `ls ${rp.join(dstRemoteEmptyDir, remoteRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, remoteRoot, "hoge")}`, 0, output);
+        await sshExec(hostInfo2Verify, `ls ${rp.join(dstRemoteEmptyDir, remoteRoot, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
 
@@ -689,29 +693,29 @@ describe("test rsync exec", function () {
         expect(formatLsOutput(rt)).to.have.members(["foo", "bar", "baz", "hoge", "huga"]);
 
         rt.splice(0, rt.length);
-        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, "hoge")}`, 0, output);
+        await sshExec(hostInfo2Verify, `ls ${rp.join(dstRemoteEmptyDir, "hoge")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["piyo", "puyo", "poyo"]);
       });
 
       it("should copy with exclude filter", async ()=>{
         await remoteToRemoteCopy(hostInfo, [remoteRoot], dstHostInfo, `${dstRemoteEmptyDir}/`, ["--exclude=ba*", "--exclude=hoge"], 0);
 
-        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteEmptyDir, remoteRoot)}`, 0, output);
+        await sshExec(hostInfo2Verify, `ls ${rp.join(dstRemoteEmptyDir, remoteRoot)}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["foo", "huga"]);
       });
     });
 
     describe("automatic directory creation", ()=>{
       it("should create nested directories for file destination", async ()=>{
-        const nestedPath = path.posix.join(dstRemoteRoot, "new/nested/dir/file.txt");
+        const nestedPath = rp.join(dstRemoteRoot, "new/nested/dir/file.txt");
         await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstHostInfo, nestedPath, [], 0);
 
-        await sshExec(hostInfo2Verify, `ls ${path.posix.join(dstRemoteRoot, "new/nested/dir")}`, 0, output);
+        await sshExec(hostInfo2Verify, `ls ${rp.join(dstRemoteRoot, "new/nested/dir")}`, 0, output);
         expect(formatLsOutput(rt)).to.have.members(["file.txt"]);
       });
 
       it("should create directory for directory destination with trailing slash", async ()=>{
-        const nestedPath = path.posix.join(dstRemoteRoot, "new/nested/dir/");
+        const nestedPath = rp.join(dstRemoteRoot, "new/nested/dir/");
         await remoteToRemoteCopy(hostInfo, [remoteFiles[0]], dstHostInfo, nestedPath, [], 0);
 
         await sshExec(hostInfo2Verify, `ls ${nestedPath}`, 0, output);
