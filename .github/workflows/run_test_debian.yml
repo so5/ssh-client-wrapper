@@ -81,4 +81,4 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-add .test-ssh-keys/id_rsa
           export TEST_KEYFILE="$(pwd)/.test-ssh-keys/id_rsa"
-          npm run mocha
+          npm run mocha -- --bail

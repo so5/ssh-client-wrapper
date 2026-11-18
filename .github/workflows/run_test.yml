@@ -71,7 +71,7 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-add .test-ssh-keys/id_rsa
           export TEST_KEYFILE="$(pwd)/.test-ssh-keys/id_rsa"
-          npm run test
+          npm run test -- --bail
         env:
           TEST_KEYFILE: ${{ github.workspace }}/.test-ssh-keys/id_rsa
       - run: npm run coverage
