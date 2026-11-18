@@ -16,6 +16,13 @@ chai.use(sinonChai);
 chai.use(chaiAsPromised);
 
 const sshout = sinon.stub();
+//the output callback receives the data of the pty as it arrives, so one output may be split into several calls (on any OS)
+const outputText = ()=>{
+  return sshout.getCalls().map((c)=>{
+    return c.args[0];
+  })
+.join("");
+};
 
 //testee
 import { sshExec, canConnect, disconnect } from "../../lib/sshExec.js";
@@ -68,29 +75,25 @@ describe("test for ssh execution", function () {
     it("should execute 2 command by prependCmd ", async ()=>{
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null, "echo foo");
       expect(rt).to.equal(0);
-      expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(new RegExp(`^foo${os.EOL}hoge${os.EOL}`));
+      expect(outputText()).to.match(new RegExp(`^foo${os.EOL}hoge${os.EOL}`));
     });
     it("should execute 2 command by hostInfo.prependCmd ", async ()=>{
       hostInfo.prependCmd = "echo foo";
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null);
       expect(rt).to.equal(0);
-      expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(new RegExp(`^foo${os.EOL}hoge${os.EOL}`));
+      expect(outputText()).to.match(new RegExp(`^foo${os.EOL}hoge${os.EOL}`));
       delete hostInfo.prependCmd;
     });
     it("should execute 2 command by rcfile", async ()=>{
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, rcfilePath);
       expect(rt).to.equal(0);
-      expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(new RegExp(`^this is test rcfile${os.EOL}hoge${os.EOL}`));
+      expect(outputText()).to.match(new RegExp(`^this is test rcfile${os.EOL}hoge${os.EOL}`));
     });
     it("should execute 2 command by hostInfo.prependCmd ", async ()=>{
       hostInfo.rcfile = rcfilePath;
       const rt = await sshExec(hostInfo, `echo ${testText}`, 0, sshout, null);
       expect(rt).to.equal(0);
-      expect(sshout).to.be.calledOnce;
-      expect(sshout).to.be.calledWithMatch(new RegExp(`^this is test rcfile${os.EOL}hoge${os.EOL}`));
+      expect(outputText()).to.match(new RegExp(`^this is test rcfile${os.EOL}hoge${os.EOL}`));
       delete hostInfo.rcfile;
     });
     //please note that exec() resolves with non-zero value
