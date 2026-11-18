@@ -53,17 +53,18 @@ jobs:
           "TEST_USER2=$env:USERNAME" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "TEST_KEYFILE=$ssh\id_rsa" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - run: npm ci
-      - name: Run integration tests
+      - name: remoteToRemoteCopy investigation
         id: it
         shell: pwsh
         continue-on-error: true
         run: |
-          # MSYS2 goes to the END of PATH: ssh of scw itself is the OpenSSH of Windows (it uses the Windows profile),
-          # and rsync (found only in MSYS2) is paired with the ssh.exe next to it by the wrapper
           $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
           Get-Command ssh, rsync | Format-Table Name, Source
-          # the suite "master connection which is gone" hangs on Windows (issue #76)
-          npx mocha --recursive test/integration --bail --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+          $env:DEBUG = "sshClientWrapper:*"
+          npx mocha test/integration/rsyncExec.js -g "should copy relative src file to relative dst dir" --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+          "---- the same command by hand on the remote (what remoteToRemoteCopy runs on the source host)"
+          $u = $env:USERNAME
+          ssh -o StrictHostKeyChecking=no -i "$env:USERPROFILE\.ssh\id_rsa" "$u@localhost" "mkdir -p /tmp/r2r/src /tmp/r2r/dst && echo x > /tmp/r2r/src/foo && echo PATH=`$PATH && which rsync ssh && echo SOCK=`$SSH_AUTH_SOCK && rsync -avv -e 'ssh -A -oStrictHostKeyChecking=no' /tmp/r2r/src/foo $u@localhost:/tmp/r2r/dst/; echo rc=`$?; ls -l /tmp/r2r/dst" 2>&1 | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\integration.txt"
       - name: Summary
         if: always()
         shell: pwsh
