@@ -58,15 +58,22 @@ jobs:
         shell: pwsh
         continue-on-error: true
         run: |
-          $env:PATH = "C:\msys64\usr\bin;" + $env:PATH
+          # MSYS2 goes to the END of PATH: ssh of scw itself is the OpenSSH of Windows (it uses the Windows profile),
+          # and rsync (found only in MSYS2) is paired with the ssh.exe next to it by the wrapper
+          $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
+          Get-Command ssh, rsync | Format-Table Name, Source
+          # one mocha per file: a failing hook only stops its own file
           # the suite "master connection which is gone" hangs on Windows (issue #76)
-          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+          foreach ($f in Get-ChildItem test/integration -Filter *.js) {
+            "=== $($f.Name)" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\integration.txt"
+            npx mocha $f.FullName --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\integration.txt"
+          }
       - name: Summary
         if: always()
         shell: pwsh
         run: |
           $t = Get-Content "$env:RUNNER_TEMP\integration.txt" -ErrorAction SilentlyContinue
-          $lines = $t | Select-String -Pattern '^\s+\d+ (passing|failing|pending)'
+          $lines = $t | Select-String -Pattern '^(=== |\s+\d+ (passing|failing|pending))'
           "### Windows integration (informational, does not affect the release)" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
           "outcome of the test step: ${{ steps.it.outcome }}" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
           $lines | ForEach-Object { $_.Line.Trim() } | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
