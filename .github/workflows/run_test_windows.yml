@@ -60,8 +60,8 @@ jobs:
       - name: Install the key to the containers (from WSL)
         shell: wsl-bash {0}
         run: |
-          pub="$(wslpath -u "$PUBKEY_WIN" 2>/dev/null || true)"
-          [ -f "$pub" ] || pub="/mnt/c/Users/runneradmin/.ssh/id_rsa.pub"
+          pub="/mnt/c/Users/runneradmin/.ssh/id_rsa.pub"
+          ls -l "$pub"
           for c in testbed testbed2; do
             sudo docker exec -i $c bash -c "mkdir -p /home/testuser/.ssh && cat >> /home/testuser/.ssh/authorized_keys && chown -R testuser:testuser /home/testuser/.ssh && chmod 700 /home/testuser/.ssh && chmod 600 /home/testuser/.ssh/authorized_keys" < "$pub"
           done
