@@ -1,4 +1,5 @@
-name: research linux containers on windows runner
+name: research linux remote (WSL2 docker) for the windows client
+# Research only. Pattern taken from RIKEN-RCCS/OPEN-WHEEL run_test_windows.yml (Vampire/setup-wsl + docker-ce in WSL).
 on:
   workflow_dispatch:
   push:
@@ -7,43 +8,74 @@ on:
     paths:
       - .github/workflows/run_test_windows.yml
 jobs:
-  probe:
+  wsl-remote:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
+    env:
+      TEST_HOST: localhost
+      TEST_USER: testuser
+      TEST_PW: passw0rd
+      TEST_PORT: 10022
+      TEST_HOST2: testbed2
+      TEST_HOST2_VERIFY: localhost
+      TEST_USER2: testuser
+      TEST_PORT2: 22
+      TEST_PORT2_VERIFY: 10023
     steps:
-      - name: Facts
-        shell: pwsh
-        continue-on-error: true
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Setup WSL with Ubuntu
+        uses: Vampire/setup-wsl@v6
+        with:
+          distribution: Ubuntu-22.04
+          additional-packages: apt-transport-https ca-certificates curl gnupg lsb-release
+      - name: Install Docker Engine in WSL
+        shell: wsl-bash {0}
         run: |
-          Get-ComputerInfo | Select-Object OsName,OsVersion,HyperVisorPresent,HyperVRequirementVirtualizationFirmwareEnabled,HyperVRequirementSecondLevelAddressTranslation | Format-List
-          Get-Service docker -ErrorAction SilentlyContinue | Format-List Name,Status
-          docker version 2>&1
-          docker info --format 'OSType={{.OSType}} Isolation={{.Isolation}} Server={{.ServerVersion}}' 2>&1
-          docker context ls 2>&1
-          Get-ChildItem "C:\Program Files\Docker" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 20 FullName
-          wsl --status 2>&1
-          wsl --list --online 2>&1 | Select-Object -First 12
-          Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -match 'Hyper-V$|VirtualMachinePlatform|Microsoft-Windows-Subsystem-Linux|Containers$' } | Format-Table FeatureName,State
-      - name: Try the Linux engine
-        shell: pwsh
-        continue-on-error: true
+          sudo mkdir -p /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+          sudo service docker start
+          sudo docker version --format '{{.Server.Version}}'
+      - name: Start the test sshd containers in WSL
+        shell: wsl-bash {0}
         run: |
-          $cli = "C:\Program Files\Docker\Docker\DockerCli.exe"
-          if (Test-Path $cli) { & $cli -SwitchLinuxEngine 2>&1; Start-Sleep 20 }
-          docker info --format 'OSType={{.OSType}}' 2>&1
-      - name: Try to run the Linux test sshd
+          sudo docker network create testnet
+          sudo docker run -d --name testbed --network testnet --network-alias testbed -p 10022:22 naoso5/test-sshd
+          sudo docker run -d --name testbed2 --network testnet --network-alias testbed2 -p 10023:22 naoso5/test-sshd
+          sleep 5
+          sudo docker ps
+      - name: Keys on the Windows side and install them to the containers
         shell: pwsh
-        continue-on-error: true
         run: |
-          docker run -d --name t -p 10022:22 naoso5/test-sshd 2>&1
-          Start-Sleep 10
-          docker ps -a 2>&1
-          docker logs t 2>&1 | Select-Object -Last 10
+          $ssh = "$env:USERPROFILE\.ssh"; New-Item -ItemType Directory -Force $ssh | Out-Null
+          & 'C:\Windows\System32\OpenSSH\ssh-keygen.exe' -q -t rsa -b 2048 -N '' -f "$ssh\id_rsa" -C plain
+          $pub = (Get-Content "$ssh\id_rsa.pub") -join ""
+          foreach ($c in 'testbed','testbed2') {
+            wsl -d Ubuntu-22.04 -- sudo docker exec $c bash -c "mkdir -p /home/testuser/.ssh && echo '$pub' >> /home/testuser/.ssh/authorized_keys && chown -R testuser:testuser /home/testuser/.ssh && chmod 700 /home/testuser/.ssh && chmod 600 /home/testuser/.ssh/authorized_keys"
+          }
+          "TEST_KEYFILE=$ssh\id_rsa" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           Test-NetConnection localhost -Port 10022 | Format-List TcpTestSucceeded
-      - name: Try WSL2 (Ubuntu)
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$ssh\id_rsa" -p 10022 testuser@localhost "uname -a; which rsync"
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$ssh\id_rsa" -p 10023 testuser@localhost "uname -a"
+      - name: Install MSYS2 rsync and openssh (client side)
+        shell: pwsh
+        run: C:\msys64\usr\bin\pacman.exe -S --noconfirm rsync openssh 2>&1 | Select-Object -Last 3
+      - run: npm ci
+      - name: Integration tests (Windows client, Linux remote in WSL2 docker)
         shell: pwsh
         continue-on-error: true
         run: |
-          wsl --install -d Ubuntu --no-launch 2>&1 | Select-Object -Last 8
-          wsl -l -v 2>&1
-          wsl -d Ubuntu -- uname -a 2>&1
+          $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
+          Get-Command ssh, rsync | Format-Table Name, Source
+          npx mocha --recursive test/integration --reporter spec --timeout 60000 --exit -g "master connection which is gone" --invert 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wsl-remote-log
+          path: ${{ runner.temp }}/integration.txt
+          retention-days: 7
