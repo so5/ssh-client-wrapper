@@ -50,19 +50,26 @@ jobs:
           sudo docker run -d --name testbed2 --network testnet --network-alias testbed2 -p 10023:22 naoso5/test-sshd
           sleep 5
           sudo docker ps
-      - name: Keys on the Windows side and install them to the containers
+      - name: Keys on the Windows side
         shell: pwsh
         run: |
           $ssh = "$env:USERPROFILE\.ssh"; New-Item -ItemType Directory -Force $ssh | Out-Null
           & 'C:\Windows\System32\OpenSSH\ssh-keygen.exe' -q -t rsa -b 2048 -N '' -f "$ssh\id_rsa" -C plain
-          $pub = (Get-Content "$ssh\id_rsa.pub") -join ""
-          foreach ($c in 'testbed','testbed2') {
-            wsl -d Ubuntu-22.04 -- sudo docker exec $c bash -c "mkdir -p /home/testuser/.ssh && echo '$pub' >> /home/testuser/.ssh/authorized_keys && chown -R testuser:testuser /home/testuser/.ssh && chmod 700 /home/testuser/.ssh && chmod 600 /home/testuser/.ssh/authorized_keys"
-          }
           "TEST_KEYFILE=$ssh\id_rsa" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-          Test-NetConnection localhost -Port 10022 | Format-List TcpTestSucceeded
-          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$ssh\id_rsa" -p 10022 testuser@localhost "uname -a; which rsync"
-          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$ssh\id_rsa" -p 10023 testuser@localhost "uname -a"
+          "PUBKEY_WIN=$ssh\id_rsa.pub" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - name: Install the key to the containers (from WSL)
+        shell: wsl-bash {0}
+        run: |
+          pub="$(wslpath -u "$PUBKEY_WIN" 2>/dev/null || true)"
+          [ -f "$pub" ] || pub="/mnt/c/Users/runneradmin/.ssh/id_rsa.pub"
+          for c in testbed testbed2; do
+            sudo docker exec -i $c bash -c "mkdir -p /home/testuser/.ssh && cat >> /home/testuser/.ssh/authorized_keys && chown -R testuser:testuser /home/testuser/.ssh && chmod 700 /home/testuser/.ssh && chmod 600 /home/testuser/.ssh/authorized_keys" < "$pub"
+          done
+      - name: Check the connection from Windows
+        shell: pwsh
+        run: |
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$env:TEST_KEYFILE" -p 10022 testuser@localhost "uname -a; which rsync"
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i "$env:TEST_KEYFILE" -p 10023 testuser@localhost "uname -a"
       - name: Install MSYS2 rsync and openssh (client side)
         shell: pwsh
         run: C:\msys64\usr\bin\pacman.exe -S --noconfirm rsync openssh 2>&1 | Select-Object -Last 3
