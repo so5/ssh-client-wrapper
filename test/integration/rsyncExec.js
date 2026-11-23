@@ -70,7 +70,7 @@ describe("test checkRsyncVersion", async ()=>{
 });
 
 describe("test rsync exec", function () {
-  this.timeout(10000);
+  this.timeout(process.platform === "win32" ? 30000 : 10000);
   const rt = [];
   const output = (data)=>{
     rt.push(data);
