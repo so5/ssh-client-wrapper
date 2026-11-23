@@ -81,7 +81,7 @@ jobs:
           $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
           Get-Command ssh, rsync | Format-Table Name, Source
           $env:DEBUG = "sshClientWrapper:*"
-          npx mocha --recursive test/integration/rsyncExec.js --reporter spec --timeout 60000 --exit -g "expand .HOME in dst|expand braces in src|replaceRetryableExitCodes|merged in via retryableExitCodes|exit code 3 is not" 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
+          npx mocha --recursive test/integration/rsyncExec.js --reporter spec --timeout 60000 --exit 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
