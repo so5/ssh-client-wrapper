@@ -9,6 +9,10 @@ on:
       - .github/workflows/run_test_windows.yml
 jobs:
   wsl-remote:
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [base, dll, dll-kill, kill]
     runs-on: windows-latest
     timeout-minutes: 45
     env:
@@ -81,6 +85,7 @@ jobs:
           $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
           Get-Command ssh, rsync | Format-Table Name, Source
           $env:DEBUG = "sshClientWrapper:*"
+          $env:SCW_PTY = "${{ matrix.variant }}"
           $mon = "$env:RUNNER_TEMP\procs.txt"
           Start-Job -ArgumentList $mon -ScriptBlock {
             param($f)
@@ -99,7 +104,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: wsl-remote-log
+          name: wsl-remote-log-${{ matrix.variant }}
           path: |
             ${{ runner.temp }}/integration.txt
             ${{ runner.temp }}/procs.txt
