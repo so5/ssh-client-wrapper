@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [early1, early2, early3]
+        variant: [early1, early2, early3, pty1, pty2, pty3]
     runs-on: windows-latest
     timeout-minutes: 45
     env:
