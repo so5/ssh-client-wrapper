@@ -6,6 +6,9 @@ const mode = (process.env.REPRO_MODE || "pty").replace(/\d+$/, "");
 const count = Number(process.env.REPRO_COUNT || 400);
 const limit = Number(process.env.REPRO_LIMIT || 15000);
 const sshArgs = ["localhost", "-l", "testuser", "-p", "10022", "-i", `${process.env.USERPROFILE}\\.ssh\\id_rsa`, "-oStrictHostKeyChecking=no", "-oUserKnownHostsFile=NUL", "-oNumberOfPasswordPrompts=1", "echo", "hello"];
+if (process.env.REPRO_VERBOSE) {
+  sshArgs.unshift(process.env.REPRO_VERBOSE);
+}
 const ssh = "C:\\Windows\\System32\\OpenSSH\\ssh.exe";
 
 function runPty() {
@@ -75,7 +78,7 @@ for (let i = 0; i < count; i++) {
     bad++;
   }
   if (!ok) {
-    console.log(`#${i} ${r.hung ? "HUNG " + r.info : "exit=" + r.exitCode} out=${JSON.stringify(r.out).slice(0, 400)} after=${Date.now() - s}ms`);
+    console.log(`#${i} ${r.hung ? "HUNG " + r.info : "exit=" + r.exitCode} out=${JSON.stringify(r.out).slice(-(process.env.REPRO_VERBOSE ? 3000 : 400))} after=${Date.now() - s}ms`);
   }
 }
 console.log(`mode=${mode} count=${count} hung=${hung} bad=${bad} elapsed=${Math.round((Date.now() - t0) / 1000)}s`);

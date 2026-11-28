@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [spawn1, spawn2, spawn3]
+        variant: [pty1, pty2, pty3, pty4]
     runs-on: windows-latest
     timeout-minutes: 45
     env:
@@ -99,7 +99,8 @@ jobs:
             }
           } | Out-Null
           $env:REPRO_MODE = "${{ matrix.variant }}"
-          $env:REPRO_COUNT = "3000"
+          $env:REPRO_COUNT = "700"
+          $env:REPRO_VERBOSE = "-vvv"
           node research/repro.mjs 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\integration.txt"
       - uses: actions/upload-artifact@v4
         if: always()
