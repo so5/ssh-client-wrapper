@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [pty, pty-sshadd, spawn]
+        variant: [early1, early2, early3]
     runs-on: windows-latest
     timeout-minutes: 45
     env:

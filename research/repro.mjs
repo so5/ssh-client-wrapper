@@ -41,12 +41,30 @@ function runAdd() {
     p.onExit(()=>{ try { p.kill(); } catch {} resolve(); });
   });
 }
+function runAddEarly() {
+  //same as lib/agent.js: kill the ssh-add pty as soon as its error output arrives, without waiting for the exit
+  return new Promise((resolve)=>{
+    const p = ptySpawn("C:\\Windows\\System32\\OpenSSH\\ssh-add.exe", [`${process.env.USERPROFILE}\\.ssh\\id_rsa`], { windowsHide: true, env: { ...process.env, SSH_AUTH_SOCK: "\\\\.\\pipe\\nonexistent" } });
+    let done = false;
+    const fin = ()=>{
+      if (done) { return; }
+      done = true;
+      try { p.kill(); } catch {}
+      resolve();
+    };
+    p.onData((d)=>{ if (/Error connecting to agent|Identity added|Could not open/.test(d)) { fin(); } });
+    p.onExit(fin);
+  });
+}
 let hung = 0;
 let bad = 0;
 const t0 = Date.now();
 for (let i = 0; i < count; i++) {
   if (mode === "pty-sshadd") {
     await runAdd();
+  }
+  if (mode.startsWith("early")) {
+    await runAddEarly();
   }
   const s = Date.now();
   const r = mode === "spawn" ? await runSpawn() : await runPty();
